@@ -1,82 +1,116 @@
-import { BlurView } from "expo-blur";
-import { isLiquidGlassAvailable } from "expo-glass-effect";
-import { Tabs } from "expo-router";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
-import { SymbolView } from "expo-symbols";
 import { Feather } from "@expo/vector-icons";
+import { Tabs } from "expo-router";
 import React from "react";
-import { Platform, StyleSheet, View, useColorScheme } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 
 import Colors from "@/constants/colors";
 
-//IMPORTANT: iOS 26 Exists, feel free to use NativeTabs for native tabs with liquid glass support.
-function NativeTabLayout() {
+const C = Colors.light;
+
+const NAVY = "#0A0E27";
+const ACTIVE = "#FDDA24";
+const INACTIVE = "rgba(255,255,255,0.45)";
+
+type FeatherName = keyof typeof Feather.glyphMap;
+
+function TabIcon({
+  name,
+  focused,
+}: {
+  name: FeatherName;
+  focused: boolean;
+}) {
   return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "house", selected: "house.fill" }} />
-        <Label>Home</Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
+    <View style={focused ? styles.activeIconWrap : styles.iconWrap}>
+      <Feather name={name} size={22} color={focused ? ACTIVE : INACTIVE} />
+    </View>
   );
 }
 
-function ClassicTabLayout() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === "dark";
-  const isIOS = Platform.OS === "ios";
+export default function TabLayout() {
   const isWeb = Platform.OS === "web";
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.light.tint,
-        tabBarInactiveTintColor: Colors.light.tabIconDefault,
-        headerShown: true,
+        headerShown: false,
+        tabBarActiveTintColor: ACTIVE,
+        tabBarInactiveTintColor: INACTIVE,
         tabBarStyle: {
-          position: "absolute",
-          backgroundColor: isIOS ? "transparent" : isDark ? "#000" : "#fff",
-          borderTopWidth: isWeb ? 1 : 0,
-          borderTopColor: isDark ? "#333" : "#ccc",
+          backgroundColor: NAVY,
+          borderTopWidth: 0,
           elevation: 0,
-          ...(isWeb ? { height: 84 } : {}),
+          shadowOpacity: 0,
+          height: isWeb ? 72 : 70,
+          paddingBottom: isWeb ? 10 : 8,
+          paddingTop: 8,
         },
-        tabBarBackground: () =>
-          isIOS ? (
-            <BlurView
-              intensity={100}
-              tint={isDark ? "dark" : "light"}
-              style={StyleSheet.absoluteFill}
-            />
-          ) : isWeb ? (
-            <View
-              style={[
-                StyleSheet.absoluteFill,
-                { backgroundColor: isDark ? "#000" : "#fff" },
-              ]}
-            />
-          ) : null,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontFamily: "Inter_500Medium",
+          marginTop: 2,
+        },
+        tabBarBackground: () => (
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: NAVY }]} />
+        ),
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="house" tintColor={color} size={24} />
-            ) : (
-              <Feather name="home" size={22} color={color} />
-            ),
+          title: "Inicio",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="home" focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="transfers"
+        options={{
+          title: "Transferir",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="send" focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="payments"
+        options={{
+          title: "Pagar",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="grid" focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="cards"
+        options={{
+          title: "Productos",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="credit-card" focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="movements"
+        options={{
+          title: "Movimientos",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="clock" focused={focused} />
+          ),
         }}
       />
     </Tabs>
   );
 }
 
-export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout />;
-  }
-  return <ClassicTabLayout />;
-}
+const styles = StyleSheet.create({
+  iconWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  activeIconWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});

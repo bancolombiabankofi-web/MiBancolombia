@@ -1,6 +1,6 @@
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Image,
   Platform,
@@ -31,7 +31,7 @@ export default function LoginScreen() {
     setPin(next);
     setError(false);
     if (next.length === 4) {
-      setTimeout(() => attempt(next), 100);
+      setTimeout(() => attempt(next), 120);
     }
   };
 
@@ -52,28 +52,42 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: topPad + 24 }]}>
+    <View style={[styles.container, { paddingTop: topPad + 32 }]}>
       <View style={styles.logo}>
-        <View style={styles.logoCircle}>
-          <Text style={styles.logoLetter}>B</Text>
-        </View>
+        <Image
+          source={require("../assets/images/bancolombia_icon.png")}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
         <Text style={styles.logoText}>Mi Bancolombia</Text>
       </View>
 
       <View style={styles.content}>
         <Text style={styles.title}>Bienvenido</Text>
-        <Text style={styles.subtitle}>Carlos Hernández</Text>
-        <Text style={styles.hint}>
-          {error ? "PIN incorrecto. Intenta de nuevo" : "Ingresa tu PIN de 4 dígitos"}
+        <Text style={styles.subtitle}>Ingresa tu clave de 4 dígitos</Text>
+
+        <Text
+          style={[
+            styles.hint,
+            error ? styles.hintError : null,
+          ]}
+        >
+          {error
+            ? "Clave incorrecta. Inténtalo de nuevo"
+            : " "}
         </Text>
-        {error && <Text style={styles.errorHint}>Usa: 1234</Text>}
 
         <PinPad pin={pin} onPress={handleDigit} onDelete={handleDelete} />
       </View>
 
-      <TouchableOpacity style={styles.forgot}>
-        <Text style={styles.forgotText}>¿Olvidaste tu clave?</Text>
-      </TouchableOpacity>
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.forgotBtn}>
+          <Text style={styles.forgotText}>¿Olvidaste tu clave?</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.registerBtn}>
+          <Text style={styles.registerText}>Registrarme</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -82,37 +96,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
-    paddingBottom: Platform.OS === "web" ? 34 : 0,
   },
   logo: {
     alignItems: "center",
-    marginBottom: 32,
+    marginBottom: 40,
   },
-  logoCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: Colors.light.yellow,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 10,
-    shadowColor: Colors.light.yellow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  logoLetter: {
-    fontSize: 32,
-    fontWeight: "700",
-    color: "#1C1C1E",
-    fontFamily: "Inter_700Bold",
+  logoImage: {
+    width: 72,
+    height: 72,
+    borderRadius: 18,
+    marginBottom: 12,
   },
   logoText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
     color: "#1C1C1E",
     fontFamily: "Inter_700Bold",
+    letterSpacing: -0.3,
   },
   content: {
     flex: 1,
@@ -120,39 +120,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: "700",
     color: "#1C1C1E",
     fontFamily: "Inter_700Bold",
-    marginBottom: 4,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: "#6B7280",
     fontFamily: "Inter_400Regular",
-    marginBottom: 32,
-  },
-  hint: {
-    fontSize: 14,
-    color: "#6B7280",
-    fontFamily: "Inter_400Regular",
-    marginBottom: 32,
+    marginBottom: 8,
     textAlign: "center",
   },
-  errorHint: {
-    fontSize: 12,
-    color: "#EF4444",
+  hint: {
+    fontSize: 13,
+    color: "transparent",
     fontFamily: "Inter_400Regular",
-    marginTop: -24,
-    marginBottom: 24,
+    marginBottom: 28,
+    textAlign: "center",
+    minHeight: 18,
   },
-  forgot: {
-    padding: 16,
+  hintError: {
+    color: "#EF4444",
+  },
+  footer: {
+    paddingBottom: Platform.OS === "web" ? 40 : 36,
     alignItems: "center",
+    gap: 12,
+  },
+  forgotBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
   },
   forgotText: {
     fontSize: 14,
-    color: Colors.light.yellow,
+    color: C.yellow,
     fontFamily: "Inter_600SemiBold",
+  },
+  registerBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  registerText: {
+    fontSize: 13,
+    color: "#6B7280",
+    fontFamily: "Inter_400Regular",
   },
 });
