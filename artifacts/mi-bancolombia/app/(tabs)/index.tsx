@@ -1,0 +1,149 @@
+import { Feather } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React from "react";
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { BalanceCard } from "@/components/BalanceCard";
+import { QuickActions } from "@/components/QuickActions";
+import { TransactionItem } from "@/components/TransactionItem";
+import Colors from "@/constants/colors";
+import { useApp } from "@/context/AppContext";
+
+const C = Colors.light;
+
+export default function HomeScreen() {
+  const { transactions, balanceVisible, logout, userName } = useApp();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const recent = transactions.slice(0, 5);
+
+  return (
+    <View style={[styles.container, { paddingTop: topPad }]}>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>Hola, {userName} 👋</Text>
+          <Text style={styles.date}>
+            {new Date().toLocaleDateString("es-CO", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}
+          </Text>
+        </View>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.iconBtn}>
+            <Feather name="bell" size={20} color={C.text} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconBtn} onPress={logout}>
+            <Feather name="log-out" size={20} color={C.text} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} bounces>
+        <BalanceCard />
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Acciones rápidas</Text>
+        </View>
+        <QuickActions />
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Últimos movimientos</Text>
+          <TouchableOpacity onPress={() => router.push("/(tabs)/movements")}>
+            <Text style={styles.seeAll}>Ver todos</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.txList}>
+          {recent.map((tx, i) => (
+            <React.Fragment key={tx.id}>
+              <TransactionItem transaction={tx} balanceVisible={balanceVisible} />
+              {i < recent.length - 1 && <View style={styles.divider} />}
+            </React.Fragment>
+          ))}
+        </View>
+
+        <View style={{ height: Platform.OS === "web" ? 100 : 90 }} />
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F5F5F7",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#F5F5F7",
+  },
+  greeting: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: C.text,
+    fontFamily: "Inter_700Bold",
+  },
+  date: {
+    fontSize: 12,
+    color: C.textSecondary,
+    fontFamily: "Inter_400Regular",
+    marginTop: 2,
+    textTransform: "capitalize",
+  },
+  headerRight: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  section: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: C.text,
+    fontFamily: "Inter_600SemiBold",
+  },
+  seeAll: {
+    fontSize: 14,
+    color: C.yellow,
+    fontFamily: "Inter_600SemiBold",
+  },
+  txList: {
+    backgroundColor: "#FFFFFF",
+    marginHorizontal: 16,
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#F5F5F7",
+    marginLeft: 70,
+  },
+});
