@@ -9,22 +9,26 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useColorScheme,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PinPad } from "@/components/PinPad";
 import { useApp } from "@/context/AppContext";
 import Colors from "@/constants/colors";
 
-const C = Colors.light;
-
 export default function LoginScreen() {
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
-  const { login } = useApp();
+  const { login, themeMode } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const system = useColorScheme();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 40 : insets.bottom + 20;
+
+  const isDark =
+    themeMode === "dark" || (themeMode === "system" && system === "dark");
+  const C = isDark ? Colors.dark : Colors.light;
 
   const handleDigit = (d: string) => {
     if (pin.length >= 4) return;
@@ -54,7 +58,7 @@ export default function LoginScreen() {
 
   return (
     <ScrollView
-      style={styles.scroll}
+      style={[styles.scroll, { backgroundColor: C.background }]}
       contentContainerStyle={[
         styles.container,
         { paddingTop: topPad + 32, paddingBottom: bottomPad },
@@ -64,28 +68,44 @@ export default function LoginScreen() {
     >
       <View style={styles.logo}>
         <Image
-          source={require("../assets/images/mi_bancolombia_icon.png")}
-          style={styles.logoImage}
+          source={
+            isDark
+              ? require("../assets/images/mi_bancolombia_icon.png")
+              : require("../assets/images/bancolombia_icon.png")
+          }
+          style={[styles.logoImage, isDark && styles.logoImageDark]}
           resizeMode="contain"
         />
-        <Text style={styles.logoText}>Mi Bancolombia</Text>
+        <Text style={[styles.logoText, { color: C.text }]}>Mi Bancolombia</Text>
       </View>
 
-      <Text style={styles.title}>Bienvenido</Text>
-      <Text style={styles.subtitle}>Ingresa tu clave de 4 dígitos</Text>
+      <Text style={[styles.title, { color: C.text }]}>Bienvenido</Text>
+      <Text style={[styles.subtitle, { color: C.textSecondary }]}>
+        Ingresa tu clave de 4 dígitos
+      </Text>
 
       <Text style={[styles.hint, error && styles.hintError]}>
         {error ? "Clave incorrecta. Inténtalo de nuevo" : " "}
       </Text>
 
-      <PinPad pin={pin} onPress={handleDigit} onDelete={handleDelete} />
+      <PinPad pin={pin} onPress={handleDigit} onDelete={handleDelete} isDark={isDark} />
 
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.footerBtn}>
-          <Text style={styles.forgotText}>¿Olvidaste tu clave?</Text>
+        <TouchableOpacity
+          style={styles.footerBtn}
+          onPress={() => router.push("/forgot-password" as any)}
+        >
+          <Text style={[styles.forgotText, { color: C.yellow }]}>
+            ¿Olvidaste tu clave?
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.footerBtn}>
-          <Text style={styles.registerText}>Registrarme</Text>
+        <TouchableOpacity
+          style={styles.footerBtn}
+          onPress={() => router.push("/register" as any)}
+        >
+          <Text style={[styles.registerText, { color: C.textSecondary }]}>
+            Registrarme
+          </Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -95,7 +115,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   scroll: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
   },
   container: {
     alignItems: "center",
@@ -108,27 +127,26 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 80,
     height: 80,
-    borderRadius: 20,
     marginBottom: 12,
+  },
+  logoImageDark: {
+    borderRadius: 20,
   },
   logoText: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1C1C1E",
     fontFamily: "Inter_700Bold",
     letterSpacing: -0.3,
   },
   title: {
     fontSize: 26,
     fontWeight: "700",
-    color: "#1C1C1E",
     fontFamily: "Inter_700Bold",
     marginBottom: 8,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 15,
-    color: "#6B7280",
     fontFamily: "Inter_400Regular",
     marginBottom: 8,
     textAlign: "center",
@@ -156,12 +174,10 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     fontSize: 14,
-    color: C.yellow,
     fontFamily: "Inter_600SemiBold",
   },
   registerText: {
     fontSize: 13,
-    color: "#6B7280",
     fontFamily: "Inter_400Regular",
   },
 });

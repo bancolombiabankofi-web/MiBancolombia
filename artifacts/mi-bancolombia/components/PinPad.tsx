@@ -7,14 +7,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Colors from "@/constants/colors";
-
-const C = Colors.light;
 
 type Props = {
   pin: string;
   onPress: (digit: string) => void;
   onDelete: () => void;
+  isDark?: boolean;
 };
 
 const KEYS = [
@@ -24,7 +22,11 @@ const KEYS = [
   ["", "0", "del"],
 ];
 
-export function PinPad({ pin, onPress, onDelete }: Props) {
+export function PinPad({ pin, onPress, onDelete, isDark = false }: Props) {
+  const keyBg = isDark ? "rgba(255,255,255,0.1)" : "#F0F0F2";
+  const keyColor = isDark ? "#FFFFFF" : "#1C1C1E";
+  const dotColor = isDark ? "#FFFFFF" : "#1C1C1E";
+
   const handlePress = (key: string) => {
     if (key === "") return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -41,7 +43,11 @@ export function PinPad({ pin, onPress, onDelete }: Props) {
         {[0, 1, 2, 3].map((i) => (
           <View
             key={i}
-            style={[styles.dot, i < pin.length && styles.dotFilled]}
+            style={[
+              styles.dot,
+              { borderColor: dotColor },
+              i < pin.length && { backgroundColor: dotColor },
+            ]}
           />
         ))}
       </View>
@@ -51,14 +57,18 @@ export function PinPad({ pin, onPress, onDelete }: Props) {
             {row.map((key, ki) => (
               <TouchableOpacity
                 key={ki}
-                style={[styles.key, key === "" && styles.keyEmpty]}
+                style={[
+                  styles.key,
+                  { backgroundColor: keyBg },
+                  key === "" && styles.keyEmpty,
+                ]}
                 onPress={() => handlePress(key)}
                 activeOpacity={key === "" ? 1 : 0.6}
               >
                 {key === "del" ? (
-                  <Feather name="delete" size={22} color={C.text} />
+                  <Feather name="delete" size={22} color={keyColor} />
                 ) : (
-                  <Text style={styles.keyText}>{key}</Text>
+                  <Text style={[styles.keyText, { color: keyColor }]}>{key}</Text>
                 )}
               </TouchableOpacity>
             ))}
@@ -85,10 +95,6 @@ const styles = StyleSheet.create({
     borderRadius: 7,
     backgroundColor: "transparent",
     borderWidth: 2,
-    borderColor: "#1C1C1E",
-  },
-  dotFilled: {
-    backgroundColor: "#1C1C1E",
   },
   pad: {
     width: "100%",
@@ -103,7 +109,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#F0F0F0",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -113,7 +118,6 @@ const styles = StyleSheet.create({
   keyText: {
     fontSize: 28,
     fontWeight: "500",
-    color: "#1C1C1E",
     fontFamily: "Inter_500Medium",
   },
 });

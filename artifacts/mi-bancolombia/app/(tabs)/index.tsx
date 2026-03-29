@@ -13,10 +13,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BalanceCard } from "@/components/BalanceCard";
 import { TransactionItem } from "@/components/TransactionItem";
-import Colors from "@/constants/colors";
 import { useApp } from "@/context/AppContext";
-
-const C = Colors.light;
+import { useTheme } from "@/hooks/useTheme";
 
 type QuickAction = {
   icon: keyof typeof Feather.glyphMap;
@@ -30,29 +28,34 @@ const QUICK_ACTIONS: QuickAction[] = [
   { icon: "file-text", label: "Pagar", route: "/(tabs)/payments", color: "#10B981" },
   { icon: "smartphone", label: "Recargar", route: "/(tabs)/payments", color: "#F59E0B" },
   { icon: "credit-card", label: "Productos", route: "/(tabs)/cards", color: "#8B5CF6" },
-  { icon: "clock", label: "Movimientos", route: "/(tabs)/movements", color: "#EF4444" },
-  { icon: "more-horizontal", label: "Más", route: "/(tabs)/cards", color: "#6B7280" },
+  { icon: "bar-chart-2", label: "Movimientos", route: "/(tabs)/movements", color: "#EF4444" },
+  { icon: "grid", label: "Más servicios", route: "/(tabs)/payments", color: "#6B7280" },
 ];
 
 export default function HomeScreen() {
   const { transactions, balanceVisible, logout, userName } = useApp();
+  const { C, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const recent = transactions.slice(0, 5);
 
   return (
-    <View style={[styles.container, { paddingTop: topPad }]}>
-      <View style={styles.header}>
+    <View style={[styles.container, { paddingTop: topPad, backgroundColor: C.background }]}>
+      <View style={[styles.header, { backgroundColor: C.background }]}>
         <View style={styles.headerLeft}>
           <Image
-            source={require("../../assets/images/mi_bancolombia_icon.png")}
-            style={styles.headerLogo}
+            source={
+              isDark
+                ? require("../../assets/images/mi_bancolombia_icon.png")
+                : require("../../assets/images/bancolombia_icon.png")
+            }
+            style={[styles.headerLogo, isDark && styles.headerLogoDark]}
             resizeMode="contain"
           />
           <View>
-            <Text style={styles.greeting}>Hola, {userName}</Text>
-            <Text style={styles.date}>
+            <Text style={[styles.greeting, { color: C.text }]}>Hola, {userName}</Text>
+            <Text style={[styles.date, { color: C.textSecondary }]}>
               {new Date().toLocaleDateString("es-CO", {
                 weekday: "long",
                 day: "numeric",
@@ -62,11 +65,11 @@ export default function HomeScreen() {
           </View>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconBtn}>
+          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: C.surface }]}>
             <Feather name="bell" size={20} color={C.text} />
             <View style={styles.notifDot} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn} onPress={logout}>
+          <TouchableOpacity style={[styles.iconBtn, { backgroundColor: C.surface }]} onPress={logout}>
             <Feather name="log-out" size={20} color={C.text} />
           </TouchableOpacity>
         </View>
@@ -83,36 +86,45 @@ export default function HomeScreen() {
               onPress={() => router.push(action.route as any)}
               activeOpacity={0.7}
             >
-              <View style={[styles.quickIcon, { backgroundColor: action.color + "18" }]}>
-                <Feather name={action.icon} size={20} color={action.color} />
+              <View style={[styles.quickIcon, { backgroundColor: isDark ? action.color + "25" : action.color + "18" }]}>
+                <Feather name={action.icon} size={22} color={action.color} />
               </View>
-              <Text style={styles.quickLabel}>{action.label}</Text>
+              <Text style={[styles.quickLabel, { color: C.textSecondary }]}>{action.label}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Últimos movimientos</Text>
+          <Text style={[styles.sectionTitle, { color: C.text }]}>Últimos movimientos</Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/movements" as any)}>
-            <Text style={styles.seeAll}>Ver todos</Text>
+            <Text style={[styles.seeAll, { color: C.yellow }]}>Ver todos</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.txList}>
-          {recent.map((tx, i) => (
-            <React.Fragment key={tx.id}>
-              <TransactionItem transaction={tx} balanceVisible={balanceVisible} />
-              {i < recent.length - 1 && <View style={styles.divider} />}
-            </React.Fragment>
-          ))}
+        <View style={[styles.txList, { backgroundColor: C.surface }]}>
+          {recent.length === 0 ? (
+            <View style={styles.emptyTx}>
+              <Feather name="inbox" size={28} color={C.textLight} />
+              <Text style={[styles.emptyText, { color: C.textSecondary }]}>
+                Aún no tienes movimientos
+              </Text>
+            </View>
+          ) : (
+            recent.map((tx, i) => (
+              <React.Fragment key={tx.id}>
+                <TransactionItem transaction={tx} balanceVisible={balanceVisible} />
+                {i < recent.length - 1 && <View style={[styles.divider, { backgroundColor: C.divider }]} />}
+              </React.Fragment>
+            ))
+          )}
         </View>
 
         <View style={styles.bannerWrap}>
-          <View style={styles.banner}>
+          <View style={[styles.banner, { backgroundColor: isDark ? "#2C2C2E" : "#1C1C1E" }]}>
             <View style={{ flex: 1 }}>
               <Text style={styles.bannerTitle}>¡Conoce nuestros CDTs!</Text>
               <Text style={styles.bannerSub}>Rentabilidad hasta 12% E.A.</Text>
-              <TouchableOpacity style={styles.bannerBtn}>
+              <TouchableOpacity style={[styles.bannerBtn, { backgroundColor: C.yellow }]}>
                 <Text style={styles.bannerBtnText}>Ver más</Text>
               </TouchableOpacity>
             </View>
@@ -129,7 +141,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F7",
   },
   header: {
     flexDirection: "row",
@@ -137,7 +148,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: "#F5F5F7",
   },
   headerLeft: {
     flexDirection: "row",
@@ -147,17 +157,17 @@ const styles = StyleSheet.create({
   headerLogo: {
     width: 38,
     height: 38,
+  },
+  headerLogoDark: {
     borderRadius: 10,
   },
   greeting: {
     fontSize: 17,
     fontWeight: "700",
-    color: C.text,
     fontFamily: "Inter_700Bold",
   },
   date: {
     fontSize: 11,
-    color: C.textSecondary,
     fontFamily: "Inter_400Regular",
     marginTop: 1,
     textTransform: "capitalize",
@@ -170,7 +180,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -198,15 +207,14 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   quickIcon: {
-    width: 56,
-    height: 56,
+    width: 58,
+    height: 58,
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
   },
   quickLabel: {
     fontSize: 11,
-    color: C.textSecondary,
     fontFamily: "Inter_500Medium",
     textAlign: "center",
   },
@@ -220,23 +228,28 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: C.text,
     fontFamily: "Inter_600SemiBold",
   },
   seeAll: {
     fontSize: 14,
-    color: C.yellow,
     fontFamily: "Inter_600SemiBold",
   },
   txList: {
-    backgroundColor: "#FFFFFF",
     marginHorizontal: 16,
     borderRadius: 16,
     overflow: "hidden",
   },
+  emptyTx: {
+    alignItems: "center",
+    paddingVertical: 32,
+    gap: 8,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontFamily: "Inter_400Regular",
+  },
   divider: {
     height: 1,
-    backgroundColor: "#F5F5F7",
     marginLeft: 70,
   },
   bannerWrap: {
@@ -244,7 +257,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   banner: {
-    backgroundColor: "#1C1C1E",
     borderRadius: 16,
     padding: 20,
     flexDirection: "row",
@@ -264,7 +276,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   bannerBtn: {
-    backgroundColor: C.yellow,
     borderRadius: 8,
     paddingVertical: 6,
     paddingHorizontal: 16,

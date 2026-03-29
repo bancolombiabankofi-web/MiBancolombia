@@ -16,16 +16,21 @@ import { AppProvider, useApp } from "@/context/AppContext";
 
 SplashScreen.preventAutoHideAsync();
 
+const PUBLIC_ROUTES = ["login", "register", "forgot-password"];
+
 function AuthGate() {
   const { isAuthenticated } = useApp();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    const inTabs = segments[0] === "(tabs)";
+    const current = segments[0] as string | undefined;
+    const inTabs = current === "(tabs)";
+    const inPublic = !current || PUBLIC_ROUTES.includes(current);
+
     if (!isAuthenticated && inTabs) {
       router.replace("/login");
-    } else if (isAuthenticated && !inTabs) {
+    } else if (isAuthenticated && inPublic) {
       router.replace("/(tabs)");
     }
   }, [isAuthenticated, segments]);
@@ -37,9 +42,11 @@ function RootLayoutNav() {
   return (
     <>
       <AuthGate />
-      <Stack screenOptions={{ headerShown: false, animation: "fade" }}>
-        <Stack.Screen name="login" options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
+        <Stack.Screen name="login" options={{ headerShown: false, animation: "fade" }} />
+        <Stack.Screen name="register" options={{ headerShown: false }} />
+        <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: "fade" }} />
       </Stack>
     </>
   );
