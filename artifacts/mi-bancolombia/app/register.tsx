@@ -3,7 +3,6 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,16 +16,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import Colors from "@/constants/colors";
-import type { DocumentType } from "@/context/AppContext";
+import type { DocType } from "@/constants/countries";
 import { PinPad } from "@/components/PinPad";
 
-const DOC_TYPES: { label: string; value: DocumentType }[] = [
+const DOC_TYPES: { label: string; value: DocType }[] = [
   { label: "Cédula de Ciudadanía (CC)", value: "CC" },
   { label: "Cédula de Extranjería (CE)", value: "CE" },
-  { label: "NIT", value: "NIT" },
   { label: "Pasaporte (PA)", value: "PA" },
-  { label: "Tarjeta de Identidad (TI)", value: "TI" },
-  { label: "Registro Civil (RC)", value: "RC" },
 ];
 
 export default function RegisterScreen() {
@@ -41,7 +37,7 @@ export default function RegisterScreen() {
   const [step, setStep] = useState(1);
   const [showDocPicker, setShowDocPicker] = useState(false);
 
-  const [documentType, setDocumentType] = useState<DocumentType>("CC");
+  const [documentType, setDocumentType] = useState<DocType>("CC");
   const [documentNumber, setDocumentNumber] = useState("");
   const [firstName, setFirstName] = useState("");
   const [secondName, setSecondName] = useState("");
@@ -53,6 +49,8 @@ export default function RegisterScreen() {
   const [pin, setPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [pinStep, setPinStep] = useState<"create" | "confirm">("create");
+  const [pinError, setPinError] = useState("");
+  const [registering, setRegistering] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validate1 = () => {
@@ -90,6 +88,7 @@ export default function RegisterScreen() {
   };
 
   const handlePinDigit = (d: string) => {
+    setPinError("");
     if (pinStep === "create") {
       if (pin.length >= 4) return;
       const next = pin + d;
@@ -117,32 +116,38 @@ export default function RegisterScreen() {
 
   const finishRegister = async (confirmValue: string) => {
     if (pin !== confirmValue) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert("Claves no coinciden", "Las claves ingresadas no son iguales. Inténtalo de nuevo.", [
-        { text: "OK", onPress: () => { setPin(""); setConfirmPin(""); setPinStep("create"); } },
-      ]);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      setPinError("Las claves no coinciden. Inténtalo de nuevo.");
+      setPin("");
+      setConfirmPin("");
+      setPinStep("create");
       return;
     }
 
-    await register({
-      documentType,
-      documentNumber,
-      firstName,
-      secondName,
-      lastName,
-      secondLastName,
-      birthDate,
-      email,
-      phone,
-      pin,
-    });
-
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    Alert.alert(
-      "¡Registro exitoso!",
-      `Bienvenido, ${firstName}. Tu cuenta ha sido creada con saldo $0. Ya puedes iniciar sesión con tu clave.`,
-      [{ text: "Iniciar sesión", onPress: () => router.replace("/login") }]
-    );
+    setRegistering(true);
+    try {
+      await register({
+        documentType,
+        documentNumber,
+        countryResidence: "CO",
+        countryBirth: "CO",
+        currencyCode: "COP",
+        currencySymbol: "$",
+        firstName,
+        secondName,
+        lastName,
+        secondLastName,
+        birthDate,
+        email,
+        phone,
+        pin,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      router.replace("/login");
+    } catch {
+      setPinError("Ocurrió un error al crear la cuenta. Inténtalo de nuevo.");
+      setRegistering(false);
+    }
   };
 
   const docLabel = DOC_TYPES.find((d) => d.value === documentType)?.label ?? documentType;
@@ -317,19 +322,26 @@ export default function RegisterScreen() {
         {step === 4 && (
           <View style={styles.pinContainer}>
             <Text style={[styles.stepTitle, { color: C.text, textAlign: "center" }]}>
-              {pinStep === "create" ? "Crea tu clave" : "Confirma tu clave"}
+              {registering ? "Creando tu cuenta..." : pinStep === "create" ? "Crea tu clave" : "Confirma tu clave"}
             </Text>
             <Text style={[styles.stepSub, { color: C.textSecondary, textAlign: "center" }]}>
-              {pinStep === "create"
+              {registering
+                ? "Por favor espera un momento"
+                : pinStep === "create"
                 ? "Elige una clave de 4 dígitos para ingresar a tu cuenta"
                 : "Ingresa nuevamente tu clave para confirmarla"}
             </Text>
-            <PinPad
-              pin={pinStep === "create" ? pin : confirmPin}
-              onPress={handlePinDigit}
-              onDelete={handlePinDelete}
-              isDark={isDark}
-            />
+            {pinError ? (
+              <Text style={[styles.errorText, { textAlign: "center", marginBottom: 16 }]}>{pinError}</Text>
+            ) : null}
+            {!registering && (
+              <PinPad
+                pin={pinStep === "create" ? pin : confirmPin}
+                onPress={handlePinDigit}
+                onDelete={handlePinDelete}
+                isDark={isDark}
+              />
+            )}
           </View>
         )}
 
