@@ -25,7 +25,7 @@ const RED = "#EF4444";
 const BLUE = "#3B82F6";
 
 export default function AdminDashboard() {
-  const { logout, getAllUsers, getAllTransactions, getAllAccounts, currentUser } = useApp();
+  const { logout, getAllUsers, getAllTransactions, getAllAccounts, getLoginEvents, currentUser } = useApp();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const topPad = Platform.OS === "web" ? 60 : insets.top;
@@ -34,18 +34,24 @@ export default function AdminDashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [totalLogins, setTotalLogins] = useState(0);
+  const [failedLogins, setFailedLogins] = useState(0);
 
   useEffect(() => {
     load();
   }, []);
 
   async function load() {
-    const [u, t, a] = await Promise.all([getAllUsers(), getAllTransactions(), getAllAccounts()]);
+    const [u, t, a, ev] = await Promise.all([getAllUsers(), getAllTransactions(), getAllAccounts(), getLoginEvents()]);
     const regularUsers = u.filter((x) => !x.isAdmin);
     setUsers(regularUsers);
     setTransactions(t);
     const bal = a.reduce((sum, ac) => sum + (ac.balance || 0), 0);
     setTotalBalance(bal);
+    const successEv = ev.filter((e) => e.success && !e.deviceInfo.startsWith("LOGOUT"));
+    const failEv = ev.filter((e) => !e.success);
+    setTotalLogins(successEv.length);
+    setFailedLogins(failEv.length);
     setLoading(false);
   }
 
@@ -77,9 +83,11 @@ export default function AdminDashboard() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <View style={styles.statsGrid}>
           <StatCard icon="users" label="Usuarios" value={String(users.length)} color={BLUE} />
-          <StatCard icon="alert-circle" label="Suspendidos" value={String(suspended + blocked)} color={RED} />
+          <StatCard icon="alert-circle" label="Suspendidos/Bloq." value={String(suspended + blocked)} color={RED} />
           <StatCard icon="activity" label="Movimientos" value={String(transactions.length)} color={GREEN} />
           <StatCard icon="clock" label="Hoy" value={String(todayTx.length)} color={YELLOW} />
+          <StatCard icon="log-in" label="Sesiones exitosas" value={String(totalLogins)} color={GREEN} />
+          <StatCard icon="alert-triangle" label="Intentos fallidos" value={String(failedLogins)} color={RED} />
         </View>
 
         <View style={styles.balanceCard}>

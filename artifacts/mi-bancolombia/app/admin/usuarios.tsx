@@ -1,7 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
   Modal,
   Platform,
   ScrollView,
@@ -14,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import type { RegisteredUser } from "@/context/AppContext";
+import type { DocType } from "@/constants/countries";
 
 const BG = "#0F1320";
 const CARD = "#161B2E";
@@ -23,22 +23,15 @@ const TEXTSEC = "rgba(255,255,255,0.55)";
 const YELLOW = "#FDDA24";
 const GREEN = "#10B981";
 const RED = "#EF4444";
-const BLUE = "#3B82F6";
 const ORANGE = "#F59E0B";
 
-const STATUS_COLOR: Record<string, string> = {
-  active: GREEN,
-  suspended: ORANGE,
-  blocked: RED,
-};
-const STATUS_LABEL: Record<string, string> = {
-  active: "Activo",
-  suspended: "Suspendido",
-  blocked: "Bloqueado",
-};
+const STATUS_COLOR: Record<string, string> = { active: GREEN, suspended: ORANGE, blocked: RED };
+const STATUS_LABEL: Record<string, string> = { active: "Activo", suspended: "Suspendido", blocked: "Bloqueado" };
+
+const DOC_TYPES: DocType[] = ["CC", "CE", "PA"];
 
 export default function UsuariosScreen() {
-  const { getAllUsers, updateUser, deleteUser, addAuditLog } = useApp();
+  const { getAllUsers, updateUser, deleteUser, createUser, addAuditLog } = useApp();
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 60 : insets.top;
 
@@ -46,8 +39,28 @@ export default function UsuariosScreen() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<RegisteredUser | null>(null);
   const [editModal, setEditModal] = useState(false);
+  const [createModal, setCreateModal] = useState(false);
   const [editData, setEditData] = useState<Partial<RegisteredUser>>({});
   const [loading, setLoading] = useState(true);
+
+  const [newUser, setNewUser] = useState({
+    firstName: "",
+    secondName: "",
+    lastName: "",
+    secondLastName: "",
+    documentType: "CC" as DocType,
+    documentNumber: "",
+    birthDate: "",
+    email: "",
+    phone: "",
+    pin: "",
+    confirmPin: "",
+    countryResidence: "CO",
+    countryBirth: "CO",
+    currencyCode: "COP",
+    currencySymbol: "$",
+  });
+  const [createError, setCreateError] = useState("");
 
   const load = useCallback(async () => {
     const u = await getAllUsers();
@@ -63,7 +76,8 @@ export default function UsuariosScreen() {
       u.firstName.toLowerCase().includes(q) ||
       u.lastName.toLowerCase().includes(q) ||
       u.documentNumber.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q)
+      u.email.toLowerCase().includes(q) ||
+      (u.phone ?? "").includes(q)
     );
   });
 
@@ -77,7 +91,6 @@ export default function UsuariosScreen() {
       phone: u.phone,
       pin: u.pin,
       status: u.status ?? "active",
-      balance: u.balance ?? 0,
     });
     setSelected(u);
     setEditModal(true);
@@ -86,20 +99,16 @@ export default function UsuariosScreen() {
   const saveEdit = async () => {
     if (!selected) return;
     await updateUser(selected.id, editData);
-    await addAuditLog("EDIT_USER", `Editado usuario ${selected.documentNumber}: ${JSON.stringify(editData)}`, selected.id);
     setEditModal(false);
     load();
   };
 
   const handleDelete = (u: RegisteredUser) => {
     if (Platform.OS === "web") {
-      const confirm = window.confirm(`¿Eliminar usuario ${u.firstName} ${u.lastName}? Esta acción no se puede deshacer.`);
-      if (confirm) doDelete(u);
+      const ok = window.confirm(`¿Eliminar a ${u.firstName} ${u.lastName}? Esta acción no se puede deshacer.`);
+      if (ok) doDelete(u);
     } else {
-      Alert.alert("Eliminar usuario", `¿Eliminar a ${u.firstName} ${u.lastName}?`, [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Eliminar", style: "destructive", onPress: () => doDelete(u) },
-      ]);
+      doDelete(u);
     }
   };
 
@@ -111,16 +120,64 @@ export default function UsuariosScreen() {
 
   const toggleStatus = async (u: RegisteredUser, status: "active" | "suspended" | "blocked") => {
     await updateUser(u.id, { status });
-    await addAuditLog("CHANGE_STATUS", `Estado de ${u.documentNumber} cambiado a ${status}`, u.id);
     load();
-    if (selected?.id === u.id) setSelected((prev) => prev ? { ...prev, status } : prev);
+    if (selected?.id === u.id) setSelected((p) => p ? { ...p, status } : p);
+  };
+
+  const handleCreate = async () => {
+    setCreateError("");
+    if (!newUser.firstName.trim()) return setCreateError("Ingresa el primer nombre");
+    if (!newUser.lastName.trim()) return setCreateError("Ingresa el primer apellido");
+    if (!newUser.documentNumber.trim() || newUser.documentNumber.length < 5) return setCreateError("Documento inválido (mín. 5 caracteres)");
+    if (!newUser.email.trim() || !newUser.email.includes("@")) return setCreateError("Email inválido");
+    if (!newUser.phone.trim() || newUser.phone.length < 10) return setCreateError("Teléfono inválido (mín. 10 dígitos)");
+    if (!newUser.pin.trim() || newUser.pin.length !== 4) return setCreateError("PIN debe ser de 4 dígitos");
+    if (newUser.pin !== newUser.confirmPin) return setCreateError("Los PINs no coinciden");
+    if (!newUser.birthDate.trim()) return setCreateError("Ingresa la fecha de nacimiento");
+
+    const existing = users.find((u) => u.documentNumber === newUser.documentNumber);
+    if (existing) return setCreateError("Ya existe un usuario con ese número de documento");
+
+    await createUser({
+      documentType: newUser.documentType,
+      documentNumber: newUser.documentNumber,
+      firstName: newUser.firstName,
+      secondName: newUser.secondName,
+      lastName: newUser.lastName,
+      secondLastName: newUser.secondLastName,
+      birthDate: newUser.birthDate,
+      email: newUser.email,
+      phone: newUser.phone,
+      pin: newUser.pin,
+      countryResidence: newUser.countryResidence,
+      countryBirth: newUser.countryBirth,
+      currencyCode: newUser.currencyCode,
+      currencySymbol: newUser.currencySymbol,
+      isAdmin: false,
+      status: "active",
+    });
+
+    setCreateModal(false);
+    setNewUser({
+      firstName: "", secondName: "", lastName: "", secondLastName: "",
+      documentType: "CC", documentNumber: "", birthDate: "", email: "",
+      phone: "", pin: "", confirmPin: "",
+      countryResidence: "CO", countryBirth: "CO", currencyCode: "COP", currencySymbol: "$",
+    });
+    load();
   };
 
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Gestión de Usuarios</Text>
-        <Text style={styles.sub}>{users.length} usuarios registrados</Text>
+        <View>
+          <Text style={styles.title}>Gestión de Usuarios</Text>
+          <Text style={styles.sub}>{users.length} usuarios registrados</Text>
+        </View>
+        <TouchableOpacity style={styles.createBtn} onPress={() => setCreateModal(true)}>
+          <Feather name="user-plus" size={16} color="#1C1C1E" />
+          <Text style={styles.createBtnText}>Crear</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchWrap}>
@@ -129,7 +186,7 @@ export default function UsuariosScreen() {
           style={styles.searchInput}
           value={search}
           onChangeText={setSearch}
-          placeholder="Buscar por nombre, doc, email..."
+          placeholder="Buscar por nombre, doc, email, tel..."
           placeholderTextColor={TEXTSEC}
         />
         {search ? (
@@ -153,9 +210,7 @@ export default function UsuariosScreen() {
             >
               <View style={styles.userRow}>
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {u.firstName[0]}{u.lastName[0]}
-                  </Text>
+                  <Text style={styles.avatarText}>{u.firstName[0]}{u.lastName[0]}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.userName}>{u.firstName} {u.secondName} {u.lastName} {u.secondLastName}</Text>
@@ -176,7 +231,6 @@ export default function UsuariosScreen() {
                   <Row label="País residencia" value={u.countryResidence} />
                   <Row label="País nacimiento" value={u.countryBirth} />
                   <Row label="Moneda" value={`${u.currencyCode} (${u.currencySymbol})`} />
-                  <Row label="Saldo" value={`${u.currencySymbol ?? "$"}${(u.balance ?? 0).toLocaleString("es-CO")}`} />
                   <Row label="PIN" value={u.pin} secret />
                   <Row label="Registrado" value={new Date(u.createdAt).toLocaleString("es-CO")} />
                   <Row label="ID" value={u.id} />
@@ -212,6 +266,7 @@ export default function UsuariosScreen() {
         <View style={{ height: 80 }} />
       </ScrollView>
 
+      {/* EDIT MODAL */}
       <Modal visible={editModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
@@ -222,17 +277,69 @@ export default function UsuariosScreen() {
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <EditField label="Primer nombre" value={editData.firstName ?? ""} onChange={(v) => setEditData((p) => ({ ...p, firstName: v }))} />
-              <EditField label="Segundo nombre" value={editData.secondName ?? ""} onChange={(v) => setEditData((p) => ({ ...p, secondName: v }))} />
-              <EditField label="Primer apellido" value={editData.lastName ?? ""} onChange={(v) => setEditData((p) => ({ ...p, lastName: v }))} />
-              <EditField label="Segundo apellido" value={editData.secondLastName ?? ""} onChange={(v) => setEditData((p) => ({ ...p, secondLastName: v }))} />
-              <EditField label="Email" value={editData.email ?? ""} onChange={(v) => setEditData((p) => ({ ...p, email: v }))} />
-              <EditField label="Teléfono" value={editData.phone ?? ""} onChange={(v) => setEditData((p) => ({ ...p, phone: v }))} keyboard="phone-pad" />
-              <EditField label="PIN (4 dígitos)" value={editData.pin ?? ""} onChange={(v) => setEditData((p) => ({ ...p, pin: v }))} keyboard="numeric" maxLen={4} />
-              <EditField label="Saldo ($)" value={String(editData.balance ?? 0)} onChange={(v) => setEditData((p) => ({ ...p, balance: Number(v) || 0 }))} keyboard="numeric" />
-
+              <EF label="Primer nombre" value={editData.firstName ?? ""} onChange={(v) => setEditData((p) => ({ ...p, firstName: v }))} />
+              <EF label="Segundo nombre" value={editData.secondName ?? ""} onChange={(v) => setEditData((p) => ({ ...p, secondName: v }))} />
+              <EF label="Primer apellido" value={editData.lastName ?? ""} onChange={(v) => setEditData((p) => ({ ...p, lastName: v }))} />
+              <EF label="Segundo apellido" value={editData.secondLastName ?? ""} onChange={(v) => setEditData((p) => ({ ...p, secondLastName: v }))} />
+              <EF label="Email" value={editData.email ?? ""} onChange={(v) => setEditData((p) => ({ ...p, email: v }))} keyboard="email-address" />
+              <EF label="Teléfono" value={editData.phone ?? ""} onChange={(v) => setEditData((p) => ({ ...p, phone: v }))} keyboard="phone-pad" />
+              <EF label="PIN (4 dígitos)" value={editData.pin ?? ""} onChange={(v) => setEditData((p) => ({ ...p, pin: v }))} keyboard="numeric" maxLen={4} />
+              <Text style={[styles.editLabel, { marginTop: 12 }]}>Estado</Text>
+              <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
+                {(["active", "suspended", "blocked"] as const).map((s) => (
+                  <TouchableOpacity
+                    key={s}
+                    style={[styles.statusBtn, { borderColor: STATUS_COLOR[s], flex: 1, justifyContent: "center", paddingVertical: 10, backgroundColor: editData.status === s ? STATUS_COLOR[s] + "33" : "transparent" }]}
+                    onPress={() => setEditData((p) => ({ ...p, status: s }))}
+                  >
+                    <Text style={[styles.statusBtnText, { color: STATUS_COLOR[s] }]}>{STATUS_LABEL[s]}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
               <TouchableOpacity style={styles.saveBtn} onPress={saveEdit}>
                 <Text style={styles.saveBtnText}>Guardar cambios</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* CREATE MODAL */}
+      <Modal visible={createModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Crear Usuario</Text>
+              <TouchableOpacity onPress={() => { setCreateModal(false); setCreateError(""); }}>
+                <Feather name="x" size={20} color={TEXTSEC} />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <EF label="Primer nombre *" value={newUser.firstName} onChange={(v) => setNewUser((p) => ({ ...p, firstName: v }))} />
+              <EF label="Segundo nombre" value={newUser.secondName} onChange={(v) => setNewUser((p) => ({ ...p, secondName: v }))} />
+              <EF label="Primer apellido *" value={newUser.lastName} onChange={(v) => setNewUser((p) => ({ ...p, lastName: v }))} />
+              <EF label="Segundo apellido" value={newUser.secondLastName} onChange={(v) => setNewUser((p) => ({ ...p, secondLastName: v }))} />
+              <Text style={styles.editLabel}>Tipo de documento *</Text>
+              <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+                {DOC_TYPES.map((dt) => (
+                  <TouchableOpacity
+                    key={dt}
+                    style={[styles.statusBtn, { flex: 1, justifyContent: "center", paddingVertical: 10, borderColor: newUser.documentType === dt ? YELLOW : BORDER, backgroundColor: newUser.documentType === dt ? YELLOW + "22" : "transparent" }]}
+                    onPress={() => setNewUser((p) => ({ ...p, documentType: dt }))}
+                  >
+                    <Text style={[styles.statusBtnText, { color: newUser.documentType === dt ? YELLOW : TEXTSEC }]}>{dt}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <EF label="Número de documento *" value={newUser.documentNumber} onChange={(v) => setNewUser((p) => ({ ...p, documentNumber: v }))} keyboard="default" />
+              <EF label="Fecha nacimiento (DD/MM/AAAA) *" value={newUser.birthDate} onChange={(v) => setNewUser((p) => ({ ...p, birthDate: v }))} />
+              <EF label="Email *" value={newUser.email} onChange={(v) => setNewUser((p) => ({ ...p, email: v }))} keyboard="email-address" />
+              <EF label="Teléfono (10 dígitos) *" value={newUser.phone} onChange={(v) => setNewUser((p) => ({ ...p, phone: v }))} keyboard="phone-pad" maxLen={10} />
+              <EF label="PIN (4 dígitos) *" value={newUser.pin} onChange={(v) => setNewUser((p) => ({ ...p, pin: v }))} keyboard="numeric" maxLen={4} />
+              <EF label="Confirmar PIN *" value={newUser.confirmPin} onChange={(v) => setNewUser((p) => ({ ...p, confirmPin: v }))} keyboard="numeric" maxLen={4} />
+              {createError ? <Text style={styles.errorText}>{createError}</Text> : null}
+              <TouchableOpacity style={styles.saveBtn} onPress={handleCreate}>
+                <Text style={styles.saveBtnText}>Crear usuario</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -254,49 +361,25 @@ function Row({ label, value, secret }: { label: string; value: string; secret?: 
   );
 }
 
-function EditField({ label, value, onChange, keyboard, maxLen }: { label: string; value: string; onChange: (v: string) => void; keyboard?: any; maxLen?: number }) {
+function EF({ label, value, onChange, keyboard, maxLen }: { label: string; value: string; onChange: (v: string) => void; keyboard?: any; maxLen?: number }) {
   return (
     <View style={{ marginBottom: 12 }}>
       <Text style={styles.editLabel}>{label}</Text>
-      <TextInput
-        style={styles.editInput}
-        value={value}
-        onChangeText={onChange}
-        keyboardType={keyboard ?? "default"}
-        maxLength={maxLen}
-        placeholderTextColor={TEXTSEC}
-      />
+      <TextInput style={styles.editInput} value={value} onChangeText={onChange} keyboardType={keyboard ?? "default"} maxLength={maxLen} placeholderTextColor={TEXTSEC} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
-  header: { paddingHorizontal: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: BORDER },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: BORDER },
   title: { fontSize: 20, fontFamily: "Inter_700Bold", color: TEXT },
   sub: { fontSize: 12, fontFamily: "Inter_400Regular", color: TEXTSEC, marginTop: 2 },
-  searchWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    margin: 16,
-    backgroundColor: CARD,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: BORDER,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
+  createBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: YELLOW, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
+  createBtnText: { fontSize: 13, fontFamily: "Inter_700Bold", color: "#1C1C1E" },
+  searchWrap: { flexDirection: "row", alignItems: "center", gap: 10, margin: 16, backgroundColor: CARD, borderRadius: 12, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 14, paddingVertical: 10 },
   searchInput: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", color: TEXT },
-  userCard: {
-    backgroundColor: CARD,
-    marginHorizontal: 16,
-    marginBottom: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: BORDER,
-    overflow: "hidden",
-  },
+  userCard: { backgroundColor: CARD, marginHorizontal: 16, marginBottom: 10, borderRadius: 14, borderWidth: 1, borderColor: BORDER, overflow: "hidden" },
   userCardActive: { borderColor: YELLOW + "60" },
   userRow: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14 },
   avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: YELLOW + "22", alignItems: "center", justifyContent: "center" },
@@ -311,7 +394,7 @@ const styles = StyleSheet.create({
   rowValue: { fontSize: 12, fontFamily: "Inter_500Medium", color: TEXT },
   statusRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12, flexWrap: "wrap" },
   statusRowLabel: { fontSize: 12, fontFamily: "Inter_500Medium", color: TEXTSEC },
-  statusBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1 },
+  statusBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, alignItems: "center" },
   statusBtnText: { fontSize: 11, fontFamily: "Inter_500Medium" },
   actionRow: { flexDirection: "row", gap: 10, marginTop: 12 },
   editBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: YELLOW + "15", borderRadius: 10, borderWidth: 1, borderColor: YELLOW + "40", paddingVertical: 10 },
@@ -320,11 +403,12 @@ const styles = StyleSheet.create({
   deleteBtnText: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: RED },
   empty: { fontSize: 14, fontFamily: "Inter_400Regular", color: TEXTSEC, textAlign: "center", paddingVertical: 40 },
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" },
-  modalCard: { backgroundColor: "#161B2E", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: "85%", borderWidth: 1, borderColor: BORDER },
+  modalCard: { backgroundColor: "#161B2E", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: "92%", borderWidth: 1, borderColor: BORDER },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
   modalTitle: { fontSize: 18, fontFamily: "Inter_700Bold", color: TEXT },
   editLabel: { fontSize: 12, fontFamily: "Inter_500Medium", color: TEXTSEC, marginBottom: 6 },
   editInput: { backgroundColor: "#0F1320", borderRadius: 10, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, fontFamily: "Inter_400Regular", color: TEXT },
-  saveBtn: { backgroundColor: YELLOW, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 8, marginBottom: 16 },
+  saveBtn: { backgroundColor: YELLOW, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 8, marginBottom: 24 },
   saveBtnText: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#1C1C1E" },
+  errorText: { fontSize: 12, fontFamily: "Inter_400Regular", color: RED, textAlign: "center", marginBottom: 10, marginTop: -4 },
 });

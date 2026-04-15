@@ -54,7 +54,7 @@ export default function MovementsScreen() {
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const [activeFilter, setActiveFilter] = useState("Todos");
-  const [selectedAccount, setSelectedAccount] = useState(accounts[0].id);
+  const [selectedAccount, setSelectedAccount] = useState(accounts[0]?.id ?? "");
 
   const account = accounts.find((a) => a.id === selectedAccount) ?? accounts[0];
 

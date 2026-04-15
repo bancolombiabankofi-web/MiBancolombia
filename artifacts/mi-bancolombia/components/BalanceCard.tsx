@@ -6,7 +6,7 @@ import { useApp } from "@/context/AppContext";
 
 const C = Colors.light;
 
-function formatCOP(amount: number) {
+function formatCOP(amount: number, symbol?: string) {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
     currency: "COP",
@@ -17,6 +17,31 @@ function formatCOP(amount: number) {
 
 export function BalanceCard() {
   const { accounts, balanceVisible, toggleBalanceVisible } = useApp();
+
+  if (accounts.length === 0) {
+    return (
+      <View style={styles.card}>
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.label}>Saldo total disponible</Text>
+            <Text style={styles.accountNum}>Sin cuenta activa</Text>
+          </View>
+          <TouchableOpacity onPress={toggleBalanceVisible} style={styles.eyeBtn}>
+            <Feather name="eye" size={20} color="#1C1C1E" />
+          </TouchableOpacity>
+        </View>
+        <View style={styles.balanceRow}>
+          <Text style={styles.balance}>$ 0</Text>
+        </View>
+        <View style={styles.accounts}>
+          <Text style={{ fontSize: 13, color: "rgba(0,0,0,0.5)", fontFamily: "Inter_400Regular" }}>
+            Tu cuenta será activada pronto
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   const main = accounts[0];
   const total = accounts.reduce((s, a) => s + a.balance, 0);
 
@@ -82,12 +107,8 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_500Medium",
     marginTop: 2,
   },
-  eyeBtn: {
-    padding: 4,
-  },
-  balanceRow: {
-    marginBottom: 16,
-  },
+  eyeBtn: { padding: 4 },
+  balanceRow: { marginBottom: 16 },
   balance: {
     fontSize: 30,
     fontWeight: "700",
