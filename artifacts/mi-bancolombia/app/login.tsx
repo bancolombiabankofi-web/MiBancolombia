@@ -63,11 +63,11 @@ export default function LoginScreen() {
   };
 
   const attempt = async (p: string) => {
-    const ok = await login(p);
+    const ok = await login(docNumber, p);
     if (ok) {
       router.replace("/(tabs)");
     } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       setError("Clave incorrecta. Inténtalo de nuevo");
       setPin("");
     }
