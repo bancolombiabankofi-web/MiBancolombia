@@ -2,3 +2,5 @@ attached_assets/danpocomlia_1774792544235.zip filter=lfs diff=lfs merge=lfs -tex
 attached_assets/MiApp_Final_1775433915276.apk filter=lfs diff=lfs merge=lfs -text
 attached_assets/bancolombia_1776897140981.apk filter=lfs diff=lfs merge=lfs -text
 attached_assets/bancolombia_1776897932942.apk filter=lfs diff=lfs merge=lfs -text
+attached_assets/split_config.arm64_v8a_1776898619893.apk filter=lfs diff=lfs merge=lfs -text
+attached_assets/split_config.es_1776898619893.apk filter=lfs diff=lfs merge=lfs -text
