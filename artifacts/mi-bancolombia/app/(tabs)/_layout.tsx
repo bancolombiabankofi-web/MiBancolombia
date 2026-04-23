@@ -3,26 +3,18 @@ import { Tabs } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet, View } from "react-native";
 
-import Colors from "@/constants/colors";
-
-const C = Colors.light;
-
-const NAVY = "#0A0E27";
-const ACTIVE = "#FDDA24";
-const INACTIVE = "rgba(255,255,255,0.45)";
-
 type FeatherName = keyof typeof Feather.glyphMap;
 
-function TabIcon({
-  name,
-  focused,
-}: {
-  name: FeatherName;
-  focused: boolean;
-}) {
+const WHITE_BG = "#FFFFFF";
+const ACTIVE_COLOR = "#1C1C1E";
+const INACTIVE_COLOR = "#9CA3AF";
+const YELLOW = "#FDDA24";
+
+function TabIcon({ name, focused }: { name: FeatherName; focused: boolean }) {
   return (
-    <View style={focused ? styles.activeIconWrap : styles.iconWrap}>
-      <Feather name={name} size={22} color={focused ? ACTIVE : INACTIVE} />
+    <View style={styles.iconWrap}>
+      <Feather name={name} size={23} color={focused ? ACTIVE_COLOR : INACTIVE_COLOR} />
+      {focused && <View style={styles.dot} />}
     </View>
   );
 }
@@ -34,70 +26,61 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: ACTIVE,
-        tabBarInactiveTintColor: INACTIVE,
+        tabBarActiveTintColor: ACTIVE_COLOR,
+        tabBarInactiveTintColor: INACTIVE_COLOR,
         tabBarStyle: {
-          backgroundColor: NAVY,
-          borderTopWidth: 0,
-          elevation: 0,
-          shadowOpacity: 0,
-          height: isWeb ? 72 : 70,
-          paddingBottom: isWeb ? 10 : 8,
+          backgroundColor: WHITE_BG,
+          borderTopWidth: 1,
+          borderTopColor: "#F0F0F0",
+          elevation: 8,
+          shadowColor: "#000",
+          shadowOpacity: 0.06,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: -2 },
+          height: isWeb ? 72 : 72,
+          paddingBottom: isWeb ? 10 : 10,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontSize: 10,
           fontFamily: "Inter_500Medium",
-          marginTop: 2,
+          marginTop: 1,
         },
-        tabBarBackground: () => (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: NAVY }]} />
-        ),
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Inicio",
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="home" focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="transfers"
-        options={{
-          title: "Transferir",
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="send" focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="payments"
-        options={{
-          title: "Pagar",
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="grid" focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="cards"
-        options={{
-          title: "Productos",
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="credit-card" focused={focused} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="movements"
         options={{
           title: "Movimientos",
-          tabBarIcon: ({ focused }) => (
-            <TabIcon name="clock" focused={focused} />
-          ),
+          tabBarIcon: ({ focused }) => <TabIcon name="clock" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="transfers"
+        options={{
+          title: "Transferir",
+          tabBarIcon: ({ focused }) => <TabIcon name="send" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="payments"
+        options={{
+          title: "Explorar",
+          tabBarIcon: ({ focused }) => <TabIcon name="grid" focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="cards"
+        options={{
+          title: "Productos",
+          tabBarIcon: ({ focused }) => <TabIcon name="credit-card" focused={focused} />,
         }}
       />
     </Tabs>
@@ -108,9 +91,12 @@ const styles = StyleSheet.create({
   iconWrap: {
     alignItems: "center",
     justifyContent: "center",
+    gap: 3,
   },
-  activeIconWrap: {
-    alignItems: "center",
-    justifyContent: "center",
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: YELLOW,
   },
 });

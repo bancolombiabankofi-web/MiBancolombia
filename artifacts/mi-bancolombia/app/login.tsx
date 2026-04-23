@@ -12,13 +12,15 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  useColorScheme,
+  Dimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PinPad } from "@/components/PinPad";
 import { useApp } from "@/context/AppContext";
-import Colors from "@/constants/colors";
 import { COUNTRIES, DOC_TYPE_LABELS, ALL_DOC_TYPES, type Country, type DocType } from "@/constants/countries";
+
+const { width: SCREEN_W } = Dimensions.get("window");
+const YELLOW = "#FDDA24";
 
 export default function LoginScreen() {
   const [step, setStep] = useState<"identify" | "pin">("identify");
@@ -31,15 +33,11 @@ export default function LoginScreen() {
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const { login, themeMode } = useApp();
+  const { login } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const system = useColorScheme();
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const topPad = Platform.OS === "web" ? 60 : insets.top;
   const bottomPad = Platform.OS === "web" ? 40 : insets.bottom + 20;
-
-  const isDark = themeMode === "dark" || (themeMode === "system" && system === "dark");
-  const C = isDark ? Colors.dark : Colors.light;
 
   const filteredCountries = COUNTRIES.filter((c) =>
     c.name.toLowerCase().includes(countrySearch.toLowerCase())
@@ -73,185 +71,182 @@ export default function LoginScreen() {
     }
   };
 
-  const inputStyle = [styles.input, { backgroundColor: C.inputBg, borderColor: C.inputBorder, color: C.text }];
-
   return (
     <KeyboardAvoidingView
-      style={[styles.flex, { backgroundColor: C.background }]}
+      style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <View style={[styles.topBar, { paddingTop: topPad }]}>
+        <Image
+          source={require("../assets/images/bancolombia_icon.png")}
+          style={styles.topLogo}
+          resizeMode="contain"
+        />
+      </View>
+
       <ScrollView
         style={styles.flex}
-        contentContainerStyle={[styles.container, { paddingTop: topPad + 28, paddingBottom: bottomPad }]}
+        contentContainerStyle={[styles.container, { paddingBottom: bottomPad }]}
         keyboardShouldPersistTaps="handled"
         bounces={false}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.logoWrap}>
-          <Image
-            source={
-              isDark
-                ? require("../assets/images/mi_bancolombia_icon.png")
-                : require("../assets/images/bancolombia_icon.png")
-            }
-            style={[styles.logo, isDark && styles.logoDark]}
-            resizeMode="contain"
-          />
-          <Text style={[styles.appName, { color: C.text }]}>Mi Bancolombia</Text>
-        </View>
-
         {step === "identify" ? (
           <>
-            <Text style={[styles.title, { color: C.text }]}>Iniciar sesión</Text>
-            <Text style={[styles.sub, { color: C.textSecondary }]}>
-              Ingresa tu país e identificación
-            </Text>
-
-            <Text style={[styles.label, { color: C.textSecondary }]}>País de residencia</Text>
-            <TouchableOpacity
-              style={[inputStyle, styles.pickerBtn]}
-              onPress={() => { setShowCountryPicker(!showCountryPicker); setShowDocPicker(false); }}
-            >
-              <Text style={[styles.flagText]}>{selectedCountry.flag}</Text>
-              <Text style={{ color: C.text, fontFamily: "Inter_400Regular", fontSize: 15, flex: 1, marginLeft: 8 }}>
-                {selectedCountry.name}
+            <View style={styles.heroSection}>
+              <Image
+                source={require("../assets/images/mi_bancolombia_icon.png")}
+                style={styles.appIcon}
+                resizeMode="contain"
+              />
+              <Text style={styles.heroTitle}>Bienvenido a{"\n"}Mi Bancolombia</Text>
+              <Text style={styles.heroSub}>
+                Ingresa tu identificación para continuar
               </Text>
-              <Feather name={showCountryPicker ? "chevron-up" : "chevron-down"} size={18} color={C.textSecondary} />
-            </TouchableOpacity>
+            </View>
 
-            {showCountryPicker && (
-              <View style={[styles.dropdown, { backgroundColor: C.surface, borderColor: C.border }]}>
-                <View style={[styles.searchWrap, { backgroundColor: C.inputBg, borderBottomColor: C.border }]}>
-                  <Feather name="search" size={14} color={C.textSecondary} />
-                  <TextInput
-                    style={[styles.searchInput, { color: C.text }]}
-                    value={countrySearch}
-                    onChangeText={setCountrySearch}
-                    placeholder="Buscar país..."
-                    placeholderTextColor={C.textLight}
-                    autoFocus
-                  />
+            <View style={styles.form}>
+              <Text style={styles.label}>País de residencia</Text>
+              <TouchableOpacity
+                style={styles.picker}
+                onPress={() => { setShowCountryPicker(!showCountryPicker); setShowDocPicker(false); }}
+              >
+                <Text style={styles.flagText}>{selectedCountry.flag}</Text>
+                <Text style={styles.pickerText}>{selectedCountry.name}</Text>
+                <Feather name={showCountryPicker ? "chevron-up" : "chevron-down"} size={18} color="#6B7280" />
+              </TouchableOpacity>
+
+              {showCountryPicker && (
+                <View style={styles.dropdown}>
+                  <View style={styles.searchWrap}>
+                    <Feather name="search" size={14} color="#9CA3AF" />
+                    <TextInput
+                      style={styles.searchInput}
+                      value={countrySearch}
+                      onChangeText={setCountrySearch}
+                      placeholder="Buscar país..."
+                      placeholderTextColor="#9CA3AF"
+                      autoFocus
+                    />
+                  </View>
+                  <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                    {filteredCountries.map((c) => (
+                      <TouchableOpacity
+                        key={c.code}
+                        style={styles.dropdownItem}
+                        onPress={() => {
+                          setSelectedCountry(c);
+                          setDocType(c.docTypes[0]);
+                          setShowCountryPicker(false);
+                          setCountrySearch("");
+                        }}
+                      >
+                        <Text style={styles.flagText}>{c.flag}</Text>
+                        <Text style={[styles.dropdownItemText, c.code === selectedCountry.code && { color: "#1C1C1E", fontFamily: "Inter_600SemiBold" }]}>
+                          {c.name}
+                        </Text>
+                        {c.code === selectedCountry.code && <Feather name="check" size={14} color={YELLOW} />}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
                 </View>
-                <ScrollView style={{ maxHeight: 220 }} nestedScrollEnabled>
-                  {filteredCountries.map((c) => (
+              )}
+
+              <Text style={[styles.label, { marginTop: 16 }]}>Tipo de documento</Text>
+              <TouchableOpacity
+                style={styles.picker}
+                onPress={() => { setShowDocPicker(!showDocPicker); setShowCountryPicker(false); }}
+              >
+                <Text style={styles.pickerText}>{DOC_TYPE_LABELS[docType]}</Text>
+                <Feather name={showDocPicker ? "chevron-up" : "chevron-down"} size={18} color="#6B7280" />
+              </TouchableOpacity>
+
+              {showDocPicker && (
+                <View style={styles.dropdown}>
+                  {ALL_DOC_TYPES.map((dt) => (
                     <TouchableOpacity
-                      key={c.code}
-                      style={[styles.dropdownItem, { borderBottomColor: C.divider }]}
-                      onPress={() => {
-                        setSelectedCountry(c);
-                        setDocType(c.docTypes[0]);
-                        setShowCountryPicker(false);
-                        setCountrySearch("");
-                      }}
+                      key={dt}
+                      style={styles.dropdownItem}
+                      onPress={() => { setDocType(dt); setShowDocPicker(false); }}
                     >
-                      <Text style={styles.flagText}>{c.flag}</Text>
-                      <Text style={{ color: c.code === selectedCountry.code ? C.yellow : C.text, fontFamily: "Inter_400Regular", fontSize: 14, marginLeft: 8, flex: 1 }}>
-                        {c.name}
+                      <Text style={[styles.dropdownItemText, dt === docType && { color: "#1C1C1E", fontFamily: "Inter_600SemiBold" }]}>
+                        {DOC_TYPE_LABELS[dt]}
                       </Text>
-                      <Text style={{ color: C.textLight, fontSize: 12, fontFamily: "Inter_400Regular" }}>
-                        {c.currencyCode}
-                      </Text>
-                      {c.code === selectedCountry.code && <Feather name="check" size={14} color={C.yellow} style={{ marginLeft: 6 }} />}
+                      {dt === docType && <Feather name="check" size={14} color={YELLOW} />}
                     </TouchableOpacity>
                   ))}
-                </ScrollView>
-              </View>
-            )}
+                </View>
+              )}
 
-            <Text style={[styles.label, { color: C.textSecondary, marginTop: 14 }]}>Tipo de documento</Text>
-            <TouchableOpacity
-              style={[inputStyle, styles.pickerBtn]}
-              onPress={() => { setShowDocPicker(!showDocPicker); setShowCountryPicker(false); }}
-            >
-              <Text style={{ color: C.text, fontFamily: "Inter_400Regular", fontSize: 15, flex: 1 }}>
-                {DOC_TYPE_LABELS[docType]}
+              <Text style={[styles.label, { marginTop: 16 }]}>
+                Número de {DOC_TYPE_LABELS[docType]}
               </Text>
-              <Feather name={showDocPicker ? "chevron-up" : "chevron-down"} size={18} color={C.textSecondary} />
-            </TouchableOpacity>
+              <TextInput
+                style={styles.input}
+                value={docNumber}
+                onChangeText={(t) => { setDocNumber(t); setError(null); }}
+                keyboardType="default"
+                placeholder="Ingresa tu número de documento"
+                placeholderTextColor="#9CA3AF"
+                maxLength={20}
+                autoCapitalize="characters"
+              />
 
-            {showDocPicker && (
-              <View style={[styles.dropdown, { backgroundColor: C.surface, borderColor: C.border }]}>
-                {ALL_DOC_TYPES.map((dt) => (
-                  <TouchableOpacity
-                    key={dt}
-                    style={[styles.dropdownItem, { borderBottomColor: C.divider }]}
-                    onPress={() => { setDocType(dt); setShowDocPicker(false); }}
-                  >
-                    <Text style={{ color: dt === docType ? C.yellow : C.text, fontFamily: "Inter_400Regular", fontSize: 14, flex: 1 }}>
-                      {DOC_TYPE_LABELS[dt]}
-                    </Text>
-                    {dt === docType && <Feather name="check" size={14} color={C.yellow} />}
-                  </TouchableOpacity>
-                ))}
+              {error && <Text style={styles.errorText}>{error}</Text>}
+
+              <TouchableOpacity style={styles.primaryBtn} onPress={handleContinue}>
+                <Text style={styles.primaryBtnText}>Continuar</Text>
+                <Feather name="arrow-right" size={18} color="#1C1C1E" />
+              </TouchableOpacity>
+
+              <View style={styles.footer}>
+                <TouchableOpacity onPress={() => router.push("/forgot-password" as any)}>
+                  <Text style={styles.linkText}>¿Olvidaste tu clave?</Text>
+                </TouchableOpacity>
+                <View style={styles.footerDivider} />
+                <TouchableOpacity onPress={() => router.push("/register" as any)}>
+                  <Text style={styles.registerText}>Registrarme</Text>
+                </TouchableOpacity>
               </View>
-            )}
-
-            <Text style={[styles.label, { color: C.textSecondary, marginTop: 14 }]}>
-              Número de {DOC_TYPE_LABELS[docType]}
-            </Text>
-            <TextInput
-              style={inputStyle}
-              value={docNumber}
-              onChangeText={(t) => { setDocNumber(t); setError(null); }}
-              keyboardType="default"
-              placeholder="Ingresa tu número de documento"
-              placeholderTextColor={C.textLight}
-              maxLength={20}
-              autoCapitalize="characters"
-            />
-
-            {error && (
-              <Text style={styles.errorText}>{error}</Text>
-            )}
-
-            <TouchableOpacity
-              style={[styles.btn, { backgroundColor: C.yellow, marginTop: 28 }]}
-              onPress={handleContinue}
-            >
-              <Text style={styles.btnText}>Continuar</Text>
-              <Feather name="arrow-right" size={18} color="#1C1C1E" />
-            </TouchableOpacity>
-
-            <View style={styles.footer}>
-              <TouchableOpacity style={styles.footerBtn} onPress={() => router.push("/forgot-password" as any)}>
-                <Text style={[styles.forgotText, { color: C.yellow }]}>¿Olvidaste tu clave?</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.footerBtn} onPress={() => router.push("/register" as any)}>
-                <Text style={[styles.registerText, { color: C.textSecondary }]}>Registrarme</Text>
-              </TouchableOpacity>
             </View>
           </>
         ) : (
           <>
-            <View style={[styles.identityCard, { backgroundColor: C.surface, borderColor: C.border }]}>
-              <Feather name="user" size={18} color={C.textSecondary} />
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={[styles.identityLabel, { color: C.textSecondary }]}>
-                  {selectedCountry.flag}  {selectedCountry.name}  ·  {DOC_TYPE_LABELS[docType]}
+            <View style={styles.heroSection}>
+              <Image
+                source={require("../assets/images/mi_bancolombia_icon.png")}
+                style={styles.appIcon}
+                resizeMode="contain"
+              />
+              <Text style={styles.heroTitle}>Ingresa tu clave</Text>
+              <Text style={styles.heroSub}>Clave de 4 dígitos</Text>
+            </View>
+
+            <View style={[styles.identityCard]}>
+              <Feather name="user" size={18} color="#6B7280" />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.identityLabel}>
+                  {selectedCountry.flag}  {DOC_TYPE_LABELS[docType]}
                 </Text>
-                <Text style={[styles.identityValue, { color: C.text }]}>{docNumber}</Text>
+                <Text style={styles.identityValue}>{docNumber}</Text>
               </View>
               <TouchableOpacity onPress={() => { setStep("identify"); setPin(""); setError(null); }}>
-                <Feather name="edit-2" size={16} color={C.yellow} />
+                <Feather name="edit-2" size={16} color={YELLOW} />
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.title, { color: C.text, textAlign: "center", marginTop: 24 }]}>
-              Ingresa tu clave
-            </Text>
-            <Text style={[styles.sub, { color: C.textSecondary, textAlign: "center" }]}>
-              Clave de 4 dígitos
-            </Text>
+            {error && <Text style={[styles.errorText, { textAlign: "center", marginTop: 8 }]}>{error}</Text>}
 
-            {error && (
-              <Text style={[styles.errorText, { textAlign: "center" }]}>{error}</Text>
-            )}
-
-            <PinPad pin={pin} onPress={handlePinDigit} onDelete={() => { setPin((p) => p.slice(0, -1)); setError(null); }} isDark={isDark} />
+            <PinPad
+              pin={pin}
+              onPress={handlePinDigit}
+              onDelete={() => { setPin((p) => p.slice(0, -1)); setError(null); }}
+              isDark={false}
+            />
 
             <View style={styles.footer}>
-              <TouchableOpacity style={styles.footerBtn} onPress={() => router.push("/forgot-password" as any)}>
-                <Text style={[styles.forgotText, { color: C.yellow }]}>¿Olvidaste tu clave?</Text>
+              <TouchableOpacity onPress={() => router.push("/forgot-password" as any)}>
+                <Text style={styles.linkText}>¿Olvidaste tu clave?</Text>
               </TouchableOpacity>
             </View>
           </>
@@ -262,82 +257,106 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  container: {
-    alignItems: "center",
+  flex: { flex: 1, backgroundColor: "#FFFFFF" },
+  topBar: {
+    backgroundColor: "#FFFFFF",
     paddingHorizontal: 24,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+    alignItems: "flex-start",
   },
-  logoWrap: {
+  topLogo: {
+    width: 150,
+    height: 34,
+  },
+  container: {
+    flexGrow: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  heroSection: {
     alignItems: "center",
-    marginBottom: 28,
+    paddingTop: 40,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
+    backgroundColor: "#FAFAFA",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
   },
-  logo: {
-    width: 76,
-    height: 76,
-    marginBottom: 10,
+  appIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    marginBottom: 20,
   },
-  logoDark: {
-    borderRadius: 18,
-  },
-  appName: {
-    fontSize: 19,
+  heroTitle: {
+    fontSize: 26,
     fontWeight: "700",
+    color: "#1C1C1E",
     fontFamily: "Inter_700Bold",
-    letterSpacing: -0.3,
+    textAlign: "center",
+    letterSpacing: -0.5,
+    marginBottom: 8,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    fontFamily: "Inter_700Bold",
-    marginBottom: 6,
-    alignSelf: "flex-start",
-  },
-  sub: {
-    fontSize: 14,
+  heroSub: {
+    fontSize: 15,
+    color: "#6B7280",
     fontFamily: "Inter_400Regular",
-    marginBottom: 24,
-    alignSelf: "flex-start",
+    textAlign: "center",
+  },
+  form: {
+    padding: 24,
   },
   label: {
     fontSize: 13,
     fontFamily: "Inter_500Medium",
+    color: "#374151",
     marginBottom: 8,
-    alignSelf: "flex-start",
   },
-  input: {
+  picker: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1.5,
+    borderColor: "#E5E7EB",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
+    backgroundColor: "#FAFAFA",
+    gap: 8,
+  },
+  flagText: { fontSize: 20 },
+  pickerText: {
+    flex: 1,
     fontSize: 15,
+    color: "#1C1C1E",
     fontFamily: "Inter_400Regular",
-    width: "100%",
-  },
-  pickerBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  flagText: {
-    fontSize: 20,
   },
   dropdown: {
     borderWidth: 1.5,
+    borderColor: "#E5E7EB",
     borderRadius: 12,
     marginTop: 4,
     overflow: "hidden",
-    width: "100%",
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   searchWrap: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    gap: 8,
     borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+    gap: 8,
+    backgroundColor: "#FAFAFA",
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
+    color: "#1C1C1E",
     fontFamily: "Inter_400Regular",
   },
   dropdownItem: {
@@ -346,24 +365,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 13,
     borderBottomWidth: 1,
+    borderBottomColor: "#F9FAFB",
+    gap: 8,
+  },
+  dropdownItemText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#6B7280",
+    fontFamily: "Inter_400Regular",
+  },
+  input: {
+    borderWidth: 1.5,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: "#1C1C1E",
+    fontFamily: "Inter_400Regular",
+    backgroundColor: "#FAFAFA",
   },
   errorText: {
     fontSize: 12,
     color: "#EF4444",
     fontFamily: "Inter_400Regular",
     marginTop: 6,
-    alignSelf: "flex-start",
   },
-  btn: {
+  primaryBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: YELLOW,
     borderRadius: 14,
-    paddingVertical: 15,
-    width: "100%",
+    paddingVertical: 16,
+    marginTop: 28,
     gap: 8,
   },
-  btnText: {
+  primaryBtnText: {
     fontSize: 16,
     fontWeight: "700",
     color: "#1C1C1E",
@@ -371,37 +409,46 @@ const styles = StyleSheet.create({
   },
   footer: {
     alignItems: "center",
-    marginTop: 16,
-    gap: 4,
-    width: "100%",
+    marginTop: 24,
+    gap: 12,
   },
-  footerBtn: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+  footerDivider: {
+    width: 40,
+    height: 1,
+    backgroundColor: "#E5E7EB",
   },
-  forgotText: {
+  linkText: {
     fontSize: 14,
+    color: "#1C1C1E",
     fontFamily: "Inter_600SemiBold",
+    textDecorationLine: "underline",
   },
   registerText: {
-    fontSize: 13,
+    fontSize: 14,
+    color: "#6B7280",
     fontFamily: "Inter_400Regular",
   },
   identityCard: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1.5,
+    borderColor: "#E5E7EB",
     borderRadius: 14,
-    padding: 14,
-    width: "100%",
+    padding: 16,
+    marginHorizontal: 24,
+    marginTop: 24,
+    backgroundColor: "#FAFAFA",
   },
   identityLabel: {
     fontSize: 12,
+    color: "#6B7280",
     fontFamily: "Inter_400Regular",
     marginBottom: 2,
   },
   identityValue: {
     fontSize: 15,
+    fontWeight: "600",
+    color: "#1C1C1E",
     fontFamily: "Inter_600SemiBold",
   },
 });

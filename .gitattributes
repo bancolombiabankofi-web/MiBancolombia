@@ -6,3 +6,6 @@ attached_assets/split_config.arm64_v8a_1776898619893.apk filter=lfs diff=lfs mer
 attached_assets/split_config.es_1776898619893.apk filter=lfs diff=lfs merge=lfs -text
 attached_assets/bancolombia_1776900821044.zip filter=lfs diff=lfs merge=lfs -text
 attached_assets/bancolombia_1776900903479.zip filter=lfs diff=lfs merge=lfs -text
+attached_assets/Mi_Bancolombia_co.com.bancolombia.personas.superapp_2.3.2_V497_1776922069212.apk filter=lfs diff=lfs merge=lfs -text
+attached_assets/Mi_Bancolombia_co.com.bancolombia.personas.superapp_2.3.2_V497_1776922423095.apk filter=lfs diff=lfs merge=lfs -text
+attached_assets/bancolombia_1776922078420.apk filter=lfs diff=lfs merge=lfs -text

@@ -14,6 +14,7 @@ import Colors from "@/constants/colors";
 import { useApp } from "@/context/AppContext";
 
 const C = Colors.light;
+const YELLOW = "#FDDA24";
 
 const FILTERS = ["Todos", "Ingresos", "Egresos", "Transferencias"];
 

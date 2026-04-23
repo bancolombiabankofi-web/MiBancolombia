@@ -259,12 +259,130 @@ async function fetchGeoLocation(): Promise<{ latitude: string; longitude: string
   }
 }
 
+const DEMO_USER: RegisteredUser = {
+  id: "demo-user-1",
+  documentType: "CC",
+  documentNumber: "1234567890",
+  countryResidence: "CO",
+  countryBirth: "CO",
+  currencyCode: "COP",
+  currencySymbol: "$",
+  firstName: "Alejandra",
+  secondName: "",
+  lastName: "García",
+  secondLastName: "",
+  birthDate: "15/06/1995",
+  email: "alejandra@email.com",
+  phone: "3001234567",
+  pin: "1234",
+  createdAt: "2024-01-01T00:00:00.000Z",
+  isAdmin: false,
+  status: "active",
+};
+
+const DEMO_ACCOUNTS: Account[] = [
+  {
+    id: "acc_demo_1",
+    userId: "demo-user-1",
+    type: "savings",
+    number: "****5678",
+    balance: 2654112,
+    currency: "Peso colombiano",
+    currencyCode: "COP",
+    currencySymbol: "$",
+    name: "Mi Cuenta Bancolombia 001",
+    status: "active",
+    createdAt: "2024-01-01T00:00:00.000Z",
+  },
+  {
+    id: "acc_demo_2",
+    userId: "demo-user-1",
+    type: "checking",
+    number: "****9012",
+    balance: 450000,
+    currency: "Peso colombiano",
+    currencyCode: "COP",
+    currencySymbol: "$",
+    name: "Cuenta Corriente",
+    status: "active",
+    createdAt: "2024-01-01T00:00:00.000Z",
+  },
+];
+
+const DEMO_TRANSACTIONS: Transaction[] = [
+  {
+    id: "tx_demo_1",
+    userId: "demo-user-1",
+    date: new Date().toISOString().split("T")[0],
+    description: "Transferencia recibida - Carlos M.",
+    amount: 500000,
+    type: "credit",
+    category: "Transferencias",
+    accountId: "acc_demo_1",
+    status: "completed",
+  },
+  {
+    id: "tx_demo_2",
+    userId: "demo-user-1",
+    date: new Date().toISOString().split("T")[0],
+    description: "Pago Factura ETB",
+    amount: -120000,
+    type: "debit",
+    category: "Servicios",
+    accountId: "acc_demo_1",
+    status: "completed",
+  },
+  {
+    id: "tx_demo_3",
+    userId: "demo-user-1",
+    date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
+    description: "Recarga Claro",
+    amount: -30000,
+    type: "debit",
+    category: "Recargas",
+    accountId: "acc_demo_1",
+    status: "completed",
+  },
+  {
+    id: "tx_demo_4",
+    userId: "demo-user-1",
+    date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
+    description: "Nómina Empresa SAS",
+    amount: 3500000,
+    type: "credit",
+    category: "Nómina",
+    accountId: "acc_demo_1",
+    status: "completed",
+  },
+  {
+    id: "tx_demo_5",
+    userId: "demo-user-1",
+    date: new Date(Date.now() - 172800000).toISOString().split("T")[0],
+    description: "Supermercado Éxito",
+    amount: -85000,
+    type: "debit",
+    category: "Compras",
+    accountId: "acc_demo_1",
+    status: "completed",
+  },
+];
+
 async function seedAdmin() {
   const usersJson = await AsyncStorage.getItem("registeredUsers");
   const users: RegisteredUser[] = usersJson ? JSON.parse(usersJson) : [];
-  const exists = users.find((u) => u.id === "admin-root");
-  if (!exists) {
-    await AsyncStorage.setItem("registeredUsers", JSON.stringify([ADMIN_USER, ...users]));
+  const adminExists = users.find((u) => u.id === "admin-root");
+  const demoExists = users.find((u) => u.id === "demo-user-1");
+
+  const newUsers = [...users];
+  if (!adminExists) newUsers.push(ADMIN_USER);
+  if (!demoExists) newUsers.push(DEMO_USER);
+  if (!adminExists || !demoExists) {
+    await AsyncStorage.setItem("registeredUsers", JSON.stringify(newUsers));
+  }
+
+  if (!demoExists) {
+    await AsyncStorage.setItem("accounts_demo-user-1", JSON.stringify(DEMO_ACCOUNTS));
+    await AsyncStorage.setItem("transactions_demo-user-1", JSON.stringify(DEMO_TRANSACTIONS));
   }
 }
 
