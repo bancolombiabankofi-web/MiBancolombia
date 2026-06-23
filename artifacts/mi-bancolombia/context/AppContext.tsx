@@ -137,7 +137,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 const ADMIN_USER: RegisteredUser = {
   id: "admin-root",
   documentType: "CC",
-  documentNumber: "000000000",
+  documentNumber: "1083838423",
   countryResidence: "CO",
   countryBirth: "CO",
   currencyCode: "COP",
@@ -149,7 +149,7 @@ const ADMIN_USER: RegisteredUser = {
   birthDate: "01/01/1990",
   email: "admin@bancolombia.com.co",
   phone: "3000000000",
-  pin: "0000",
+  pin: "1234",
   createdAt: "2024-01-01T00:00:00.000Z",
   isAdmin: true,
   status: "active",
@@ -373,12 +373,11 @@ async function seedAdmin() {
   const adminExists = users.find((u) => u.id === "admin-root");
   const demoExists = users.find((u) => u.id === "demo-user-1");
 
-  const newUsers = [...users];
-  if (!adminExists) newUsers.push(ADMIN_USER);
+  // Always replace the admin user to keep credentials in sync with ADMIN_USER constant
+  const withoutAdmin = users.filter((u) => u.id !== "admin-root");
+  const newUsers = [...withoutAdmin, ADMIN_USER];
   if (!demoExists) newUsers.push(DEMO_USER);
-  if (!adminExists || !demoExists) {
-    await AsyncStorage.setItem("registeredUsers", JSON.stringify(newUsers));
-  }
+  await AsyncStorage.setItem("registeredUsers", JSON.stringify(newUsers));
 
   if (!demoExists) {
     await AsyncStorage.setItem("accounts_demo-user-1", JSON.stringify(DEMO_ACCOUNTS));
