@@ -13,7 +13,7 @@ import { getCountryByCode } from "@/constants/countries";
 
 export type ThemeMode = "system" | "light" | "dark";
 
-export type StepType = "document" | "identity_verification" | "custom";
+export type StepType = "identity_document" | "tax_certificate" | "document" | "identity_verification" | "custom";
 export type SubmissionType = "photo" | "qr" | "radicado";
 
 export type SuspensionStep = {

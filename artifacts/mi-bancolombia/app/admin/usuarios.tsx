@@ -477,6 +477,45 @@ export default function UsuariosScreen() {
                 <Feather name="list" size={15} color="#A78BFA" />
                 <Text style={styles.editLabel}>Pasos del proceso de desbloqueo</Text>
               </View>
+
+              {/* ─── Plantillas rápidas ─── */}
+              <View style={{ marginBottom: 14 }}>
+                <Text style={[styles.editLabel, { fontSize: 10, color: "#A78BFA", marginBottom: 8, letterSpacing: 0.5, textTransform: "uppercase" }]}>
+                  Plantillas rápidas
+                </Text>
+                <TouchableOpacity
+                  style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 12, backgroundColor: "#A78BFA18", borderWidth: 1, borderColor: "#A78BFA40" }}
+                  onPress={() => {
+                    setSuspendReason("Verificación de identidad");
+                    setSuspendDocs([]);
+                    setSuspendSteps([
+                      {
+                        id: "tpl_dni_" + Date.now(),
+                        label: "Documento de identidad (DNI)",
+                        description: "Sube una fotografía legible de tu cédula o documento de identidad por ambas caras.",
+                        type: "identity_document",
+                      },
+                      {
+                        id: "tpl_tax_" + (Date.now() + 1),
+                        label: "Comprobante tributario",
+                        description: "Escanea el código de barras, sube la imagen o ingresa el número de radicado de tu certificado ante la DIAN.",
+                        type: "tax_certificate",
+                      },
+                    ]);
+                  }}
+                >
+                  <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#A78BFA22", alignItems: "center", justifyContent: "center" }}>
+                    <Feather name="shield" size={17} color="#A78BFA" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: "#A78BFA", fontFamily: "Inter_700Bold" }}>Verificación de identidad</Text>
+                    <Text style={{ fontSize: 11, color: TEXTSEC, fontFamily: "Inter_400Regular", marginTop: 1 }}>
+                      DNI + Comprobante tributario (más común)
+                    </Text>
+                  </View>
+                  <Feather name="chevron-right" size={16} color="#A78BFA" />
+                </TouchableOpacity>
+              </View>
               {suspendSteps.map((step, i) => (
                 <View key={step.id} style={[styles.chipRow, { flexDirection: "column", alignItems: "flex-start", gap: 4 }]}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8, width: "100%" }}>
@@ -486,7 +525,7 @@ export default function UsuariosScreen() {
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.chipText, { marginBottom: 0 }]}>{step.label}</Text>
                       <Text style={{ fontSize: 10, color: "#60A5FA", fontFamily: "Inter_400Regular" }}>
-                        {step.type === "document" ? "📄 Documento" : step.type === "identity_verification" ? "👤 Verificación" : "✅ Paso"}
+                        {step.type === "identity_document" ? "🪪 DNI / Identidad" : step.type === "tax_certificate" ? "🧾 Comprobante tributario" : step.type === "document" ? "📄 Documento" : step.type === "identity_verification" ? "👤 Verificación" : "✅ Paso"}
                         {step.radicadoNumber ? ` · Rad: ${step.radicadoNumber}` : ""}
                       </Text>
                     </View>
@@ -502,18 +541,19 @@ export default function UsuariosScreen() {
 
               {/* Step type selector */}
               <Text style={[styles.editLabel, { marginBottom: 8, marginTop: 4 }]}>Tipo de paso</Text>
-              <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+              <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
                 {([
-                  { value: "document", label: "📄 Documento", color: "#60A5FA" },
-                  { value: "identity_verification", label: "👤 Verificación", color: "#A78BFA" },
-                  { value: "custom", label: "✅ Otro", color: "#94A3B8" },
+                  { value: "identity_document", label: "🪪 DNI",           color: "#3B82F6" },
+                  { value: "tax_certificate",   label: "🧾 Tributario",    color: "#A78BFA" },
+                  { value: "document",          label: "📄 Documento",     color: "#60A5FA" },
+                  { value: "custom",            label: "✅ Otro",           color: "#94A3B8" },
                 ] as const).map((opt) => (
                   <TouchableOpacity
                     key={opt.value}
-                    style={[styles.reasonBtn, suspendNewStepType === opt.value && { backgroundColor: opt.color + "22", borderColor: opt.color, borderWidth: 1 }, { flex: 1, paddingVertical: 8 }]}
+                    style={[styles.reasonBtn, suspendNewStepType === opt.value && { backgroundColor: opt.color + "22", borderColor: opt.color, borderWidth: 1 }, { paddingVertical: 8, paddingHorizontal: 10 }]}
                     onPress={() => setSuspendNewStepType(opt.value)}
                   >
-                    <Text style={{ fontSize: 10, color: suspendNewStepType === opt.value ? opt.color : TEXTSEC, textAlign: "center", fontFamily: "Inter_500Medium" }}>{opt.label}</Text>
+                    <Text style={{ fontSize: 11, color: suspendNewStepType === opt.value ? opt.color : TEXTSEC, textAlign: "center", fontFamily: "Inter_500Medium" }}>{opt.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -534,23 +574,28 @@ export default function UsuariosScreen() {
                 placeholderTextColor={TEXTSEC}
                 returnKeyType="next"
               />
-              {suspendNewStepType === "document" && (
-                <View style={styles.addRow}>
-                  <TextInput
-                    style={[styles.editInput, { flex: 1, marginBottom: 0 }]}
-                    value={suspendNewStepRadicado}
-                    onChangeText={setSuspendNewStepRadicado}
-                    placeholder="N° radicado (asignar al usuario)"
-                    placeholderTextColor={TEXTSEC}
-                    returnKeyType="done"
-                    onSubmitEditing={addStep}
-                  />
-                  <TouchableOpacity style={[styles.addBtn, { backgroundColor: "#A78BFA22" }]} onPress={addStep}>
-                    <Feather name="plus" size={18} color="#A78BFA" />
-                  </TouchableOpacity>
+              {(suspendNewStepType === "document" || suspendNewStepType === "tax_certificate") && (
+                <View style={{ gap: 8, marginBottom: 4 }}>
+                  <Text style={[styles.editLabel, { fontSize: 10, color: TEXTSEC, marginBottom: 0 }]}>
+                    {suspendNewStepType === "tax_certificate" ? "N° radicado tributario (opcional — el usuario debe coincidir)" : "N° radicado (asignar al usuario)"}
+                  </Text>
+                  <View style={styles.addRow}>
+                    <TextInput
+                      style={[styles.editInput, { flex: 1, marginBottom: 0 }]}
+                      value={suspendNewStepRadicado}
+                      onChangeText={setSuspendNewStepRadicado}
+                      placeholder="Ej: 2024-1234567"
+                      placeholderTextColor={TEXTSEC}
+                      returnKeyType="done"
+                      onSubmitEditing={addStep}
+                    />
+                    <TouchableOpacity style={[styles.addBtn, { backgroundColor: "#A78BFA22" }]} onPress={addStep}>
+                      <Feather name="plus" size={18} color="#A78BFA" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
-              {suspendNewStepType !== "document" && (
+              {suspendNewStepType !== "document" && suspendNewStepType !== "tax_certificate" && (
                 <TouchableOpacity style={[styles.addBtn, { width: "100%", borderRadius: 10, height: 44, backgroundColor: "#A78BFA22" }]} onPress={addStep}>
                   <Feather name="plus" size={16} color="#A78BFA" />
                   <Text style={{ fontSize: 13, color: "#A78BFA", fontFamily: "Inter_500Medium", marginLeft: 6 }}>Agregar paso</Text>
