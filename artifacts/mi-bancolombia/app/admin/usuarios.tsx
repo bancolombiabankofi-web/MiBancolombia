@@ -888,4 +888,10 @@ const styles = StyleSheet.create({
   saveBtn: { backgroundColor: YELLOW, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 8, marginBottom: 24 },
   saveBtnText: { fontSize: 15, fontFamily: "Inter_700Bold", color: "#1C1C1E" },
   errorText: { fontSize: 12, fontFamily: "Inter_400Regular", color: RED, textAlign: "center", marginBottom: 10, marginTop: -4 },
+  sectionSep: { height: 1, backgroundColor: "rgba(255,255,255,0.07)", marginVertical: 16 },
+  chipRow: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#0A0E1A", borderRadius: 10, borderWidth: 1, borderColor: BORDER, padding: 10, marginBottom: 8 },
+  chipText: { flex: 1, fontSize: 12, fontFamily: "Inter_400Regular", color: TEXT, marginBottom: 0 },
+  addRow: { flexDirection: "row", gap: 8, marginBottom: 8 },
+  addBtn: { width: 44, height: 44, borderRadius: 10, backgroundColor: YELLOW + "22", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: YELLOW + "40" },
+  stepNum: { width: 22, height: 22, borderRadius: 11, backgroundColor: "#A78BFA22", alignItems: "center", justifyContent: "center" },
 });

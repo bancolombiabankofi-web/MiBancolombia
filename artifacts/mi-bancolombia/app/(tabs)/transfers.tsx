@@ -183,12 +183,14 @@ function TransferView({ onBack, useBanks, title = "Transferir plata" }: { onBack
             <Text style={tx.confirmName}>{selected.name}</Text>
             <Text style={tx.confirmBank}>{selected.bank} · {selected.account}</Text>
             <View style={tx.confirmSep} />
-            {[
-              ["Monto", `${currencySymbol} ${displayAmount} ${currencyCode}`],
-              note ? ["Descripción", note] : null,
-              ["Cuenta origen", account?.number ?? "****"],
-              ["Saldo después", formatBalance((account?.balance ?? 0) - rawNum, currencyCode, currencySymbol, true)],
-            ].filter(Boolean).map(([l, v]) => (
+            {(
+              [
+                ["Monto", `${currencySymbol} ${displayAmount} ${currencyCode}`],
+                note ? ["Descripción", note] : null,
+                ["Cuenta origen", account?.number ?? "****"],
+                ["Saldo después", formatBalance((account?.balance ?? 0) - rawNum, currencyCode, currencySymbol, true)],
+              ].filter(Boolean) as string[][]
+            ).map(([l, v]) => (
               <View key={l} style={tx.confirmRow}>
                 <Text style={tx.confirmLabel}>{l}</Text>
                 <Text style={tx.confirmValue}>{v}</Text>
