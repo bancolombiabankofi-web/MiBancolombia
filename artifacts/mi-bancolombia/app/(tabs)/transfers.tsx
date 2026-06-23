@@ -5,6 +5,7 @@ import {
   Alert,
   Dimensions,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -20,14 +21,20 @@ import { formatBalance, BANKS_BY_CURRENCY } from "@/constants/countries";
 const RESTRICTED_STATUSES = ["suspended", "blocked"] as const;
 
 function useMoneyRestriction() {
-  const { currentUser } = useApp();
+  const { currentUser, supportPhone } = useApp();
   const isRestricted = RESTRICTED_STATUSES.includes(currentUser?.status as any);
   const showRestrictionAlert = () => {
     const isBlocked = currentUser?.status === "blocked";
     Alert.alert(
       isBlocked ? "Cuenta bloqueada" : "Cuenta en revisión",
-      `Tu cuenta está ${isBlocked ? "bloqueada" : "en revisión"} y no puede realizar movimientos de dinero en este momento.\n\nPuedes iniciar el proceso de desbloqueo desde la pantalla de inicio.`,
-      [{ text: "Entendido" }]
+      `Tu cuenta está ${isBlocked ? "bloqueada permanentemente" : "en revisión"} y no puede realizar movimientos de dinero en este momento.\n\nContacta a un asesor para resolver esta situación.`,
+      [
+        { text: "Entendido", style: "cancel" },
+        {
+          text: "Hablar con asesor",
+          onPress: () => Linking.openURL(`https://wa.me/${supportPhone}?text=Hola,%20mi%20cuenta%20está%20${isBlocked ? "bloqueada" : "en%20revisión"}%20y%20necesito%20ayuda`).catch(() => {}),
+        },
+      ]
     );
   };
   return { isRestricted, showRestrictionAlert };
@@ -633,26 +640,28 @@ let setCurrentViewGlobal: ((v: SubView) => void) | null = null;
    MAIN SCREEN
 ══════════════════════════════════════════════════════════════ */
 function AccountRestrictedScreen({ topPad }: { topPad: number }) {
-  const { currentUser } = useApp();
+  const { currentUser, supportPhone } = useApp();
   const u = currentUser;
   const isBlocked = u?.status === "blocked";
   const steps = u?.unblockSteps ?? [];
   const docs = u?.requiredDocuments ?? [];
   const color = isBlocked ? "#EF4444" : "#F59E0B";
-  const label = isBlocked ? "Cuenta bloqueada" : "Cuenta suspendida";
+  const label = isBlocked ? "Cuenta bloqueada" : "Cuenta en revisión";
+  const waMsg = encodeURIComponent(`Hola, mi cuenta está ${isBlocked ? "bloqueada" : "en revisión"} y necesito ayuda para habilitar los movimientos.`);
   return (
     <View style={{ flex: 1, backgroundColor: "#0F172A", paddingTop: topPad }}>
       <View style={{ paddingHorizontal: 20, paddingVertical: 16 }}>
         <Text style={{ fontSize: 20, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold" }}>Transacciones</Text>
       </View>
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
-        <View style={{ backgroundColor: color + "15", borderRadius: 16, borderWidth: 1.5, borderColor: color + "50", padding: 20, marginBottom: 20 }}>
+        {/* Banner de restricción */}
+        <View style={{ backgroundColor: color + "15", borderRadius: 16, borderWidth: 1.5, borderColor: color + "50", padding: 20, marginBottom: 16 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
             <Feather name={isBlocked ? "lock" : "alert-triangle"} size={22} color={color} />
             <Text style={{ fontSize: 17, fontWeight: "700", color, fontFamily: "Inter_700Bold" }}>{label}</Text>
           </View>
-          <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular", lineHeight: 19 }}>
-            Tu cuenta tiene restricciones. No puedes realizar transferencias, pagos ni movimientos de dinero en este momento.
+          <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.70)", fontFamily: "Inter_400Regular", lineHeight: 19 }}>
+            Tu cuenta no puede realizar transferencias, pagos ni movimientos de dinero en este momento. Puedes seguir consultando tu saldo e historial.
           </Text>
           {u?.suspensionReason ? (
             <View style={{ marginTop: 12, backgroundColor: "rgba(255,255,255,0.06)", borderRadius: 10, padding: 12 }}>
@@ -662,13 +671,31 @@ function AccountRestrictedScreen({ topPad }: { topPad: number }) {
             </View>
           ) : null}
         </View>
+
+        {/* Botón principal: Hablar con asesor */}
+        <TouchableOpacity
+          style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 18, borderRadius: 16, backgroundColor: "#25D36620", borderWidth: 1.5, borderColor: "#25D36660", marginBottom: 16 }}
+          onPress={() => Linking.openURL(`https://wa.me/${supportPhone}?text=${waMsg}`).catch(() => {})}
+        >
+          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: "#25D36622", alignItems: "center", justifyContent: "center" }}>
+            <Feather name="message-circle" size={24} color="#25D366" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: "700", color: "#25D366", fontFamily: "Inter_700Bold" }}>Hablar con un asesor</Text>
+            <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", fontFamily: "Inter_400Regular", marginTop: 2 }}>
+              Chat directo de WhatsApp con soporte
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={20} color="#25D366" />
+        </TouchableOpacity>
+
         {docs.length > 0 && (
           <View style={{ backgroundColor: "#1E2A3A", borderRadius: 16, padding: 18, marginBottom: 16 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 }}>
               <Feather name="file-text" size={18} color="#60A5FA" />
               <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold" }}>Documentos requeridos</Text>
             </View>
-            {docs.map((doc, i) => (
+            {docs.map((doc: string, i: number) => (
               <View key={i} style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
                 <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: "#3B82F620", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
                   <Text style={{ fontSize: 11, fontWeight: "700", color: "#60A5FA" }}>{i + 1}</Text>
@@ -684,30 +711,22 @@ function AccountRestrictedScreen({ topPad }: { topPad: number }) {
               <Feather name="list" size={18} color="#A78BFA" />
               <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold" }}>Pasos para desbloquear</Text>
             </View>
-            {steps.map((step, i) => (
+            {steps.map((step: any, i: number) => (
               <View key={step.id} style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: i < steps.length - 1 ? 16 : 0 }}>
                 <View style={{ alignItems: "center" }}>
-                  <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: "#7C3AED30", borderWidth: 1.5, borderColor: "#A78BFA", alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ fontSize: 12, fontWeight: "700", color: "#A78BFA" }}>{i + 1}</Text>
+                  <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: step.completed ? "#22C55E30" : "#7C3AED30", borderWidth: 1.5, borderColor: step.completed ? "#22C55E" : "#A78BFA", alignItems: "center", justifyContent: "center" }}>
+                    {step.completed
+                      ? <Feather name="check" size={13} color="#22C55E" />
+                      : <Text style={{ fontSize: 12, fontWeight: "700", color: "#A78BFA" }}>{i + 1}</Text>}
                   </View>
                   {i < steps.length - 1 && <View style={{ width: 1.5, height: 20, backgroundColor: "#A78BFA40", marginTop: 4 }} />}
                 </View>
                 <View style={{ flex: 1, paddingTop: 4 }}>
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold", marginBottom: 2 }}>{step.label}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: step.completed ? "#22C55E" : "#fff", fontFamily: "Inter_700Bold", marginBottom: 2 }}>{step.label}</Text>
                   {step.description ? <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", fontFamily: "Inter_400Regular", lineHeight: 17 }}>{step.description}</Text> : null}
                 </View>
               </View>
             ))}
-          </View>
-        )}
-        {steps.length === 0 && docs.length === 0 && (
-          <View style={{ backgroundColor: "#1E2A3A", borderRadius: 16, padding: 20, alignItems: "center" }}>
-            <Feather name="phone" size={28} color="#60A5FA" style={{ marginBottom: 10 }} />
-            <Text style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 }}>
-              Comunícate con Bancolombia al{"\n"}
-              <Text style={{ color: "#FDDA24", fontWeight: "700" }}>018 000 912345</Text>
-              {"\n"}para conocer los pasos a seguir.
-            </Text>
           </View>
         )}
       </ScrollView>

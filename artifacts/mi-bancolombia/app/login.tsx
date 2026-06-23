@@ -123,7 +123,7 @@ export default function LoginScreen() {
       router.replace("/(tabs)");
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      setError("Clave incorrecta o cuenta suspendida. Inténtalo de nuevo");
+      setError("Clave incorrecta. Inténtalo de nuevo");
       setPin("");
     }
   };

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   Platform,
   ScrollView,
@@ -15,11 +16,12 @@ import {
 import type { SuspensionStep, SubmissionType } from "@/context/AppContext";
 import { useApp } from "@/context/AppContext";
 
-const GREEN = "#22C55E";
-const RED = "#EF4444";
+const GREEN  = "#22C55E";
+const RED    = "#EF4444";
 const YELLOW = "#FDDA24";
-const BLUE = "#3B82F6";
+const BLUE   = "#3B82F6";
 const PURPLE = "#A78BFA";
+const ORANGE = "#F59E0B";
 
 /* ─── Helpers ─── */
 function normalize(s: string) {
@@ -32,9 +34,9 @@ function normalize(s: string) {
 }
 
 function StepTypeIcon({ type }: { type?: string }) {
-  if (type === "identity_document") return <Feather name="credit-card" size={16} color={BLUE} />;
-  if (type === "tax_certificate")   return <Feather name="file-text"   size={16} color={PURPLE} />;
-  if (type === "document")          return <Feather name="file-text"   size={16} color={BLUE} />;
+  if (type === "identity_document")    return <Feather name="credit-card" size={16} color={BLUE} />;
+  if (type === "tax_certificate")      return <Feather name="file-text"   size={16} color={PURPLE} />;
+  if (type === "document")             return <Feather name="file-text"   size={16} color={BLUE} />;
   if (type === "identity_verification") return <Feather name="user-check" size={16} color={PURPLE} />;
   return <Feather name="check-square" size={16} color="#94A3B8" />;
 }
@@ -47,12 +49,16 @@ function StepTypeLabel({ type }: { type?: string }) {
   return "Paso requerido";
 }
 
-/* ══════════════════════════════════════════════════════
-   IDENTITY DOCUMENT PANEL
-   Validates name + doc number against registered user
-══════════════════════════════════════════════════════ */
-function IdentityDocumentPanel({
-  step, onSubmit, onClose, isDark, currentUser,
+/* ══════════════════════════════════════════════════════════════
+   PANEL UNIVERSAL — siempre muestra las 3 opciones sin importar
+   el tipo de paso: foto · escanear QR · radicado manual
+══════════════════════════════════════════════════════════════ */
+function UniversalStepPanel({
+  step,
+  onSubmit,
+  onClose,
+  isDark,
+  currentUser,
 }: {
   step: SuspensionStep;
   onSubmit: (t: SubmissionType, v?: string) => Promise<void>;
@@ -60,337 +66,282 @@ function IdentityDocumentPanel({
   isDark: boolean;
   currentUser: any;
 }) {
-  const [docNumber, setDocNumber]   = useState("");
-  const [fullName,  setFullName]    = useState("");
-  const [error,     setError]       = useState("");
-  const [scanning,  setScanning]    = useState(false);
+  type TabKey = "photo" | "qr" | "manual";
+  const [activeTab,  setActiveTab]  = useState<TabKey>("photo");
+  const [scanning,   setScanning]   = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error,      setError]      = useState("");
+
+  /* manual form fields */
+  const [docNumber, setDocNumber] = useState("");
+  const [fullName,  setFullName]  = useState("");
+  const [radicado,  setRadicado]  = useState(step.radicadoNumber ?? "");
 
   const text    = isDark ? "#FFFFFF" : "#111827";
   const textSec = isDark ? "rgba(255,255,255,0.55)" : "#6B7280";
   const inputBg = isDark ? "#2C2C2E" : "#F3F4F6";
   const border  = isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB";
 
-  const validate = () => {
-    const registeredDoc  = normalize(currentUser?.documentNumber ?? "");
-    const registeredName = normalize(`${currentUser?.firstName ?? ""} ${currentUser?.lastName ?? ""}`);
-    const inputDoc  = normalize(docNumber);
-    const inputName = normalize(fullName);
+  const isIdentity = step.type === "identity_document" || step.type === "identity_verification";
 
-    if (!inputDoc && !inputName) {
-      setError("Ingresa el número de documento y el nombre que aparece en tu documento.");
-      return false;
-    }
-    if (!inputDoc) { setError("Ingresa el número de documento."); return false; }
-    if (!inputName) { setError("Ingresa el nombre completo tal como aparece en el documento."); return false; }
-
-    if (inputDoc !== registeredDoc) {
-      setError("Este documento no es identificado o no es válido. El número no coincide con el registrado en la cuenta.");
-      return false;
-    }
-    const nameParts = inputName.split(" ");
-    const regParts  = registeredName.split(" ");
-    const match = nameParts.some((p) => regParts.includes(p)) && regParts.some((p) => nameParts.includes(p));
-    if (!match) {
-      setError("Este documento no es identificado o no es válido. El nombre no corresponde al titular de la cuenta.");
-      return false;
-    }
-    return true;
-  };
-
-  const handlePhotoScan = () => {
-    setScanning(true);
-    setError("");
-    setTimeout(() => {
-      setScanning(false);
-      setDocNumber(currentUser?.documentNumber ?? "");
-      setFullName(`${currentUser?.firstName ?? ""} ${currentUser?.lastName ?? ""}`.trim());
-    }, 2200);
-  };
-
-  const handleConfirm = async () => {
-    if (!validate()) return;
+  const doSubmit = async (type: SubmissionType, value?: string) => {
     setSubmitting(true);
+    setError("");
     try {
-      await onSubmit("photo", `dni_${docNumber}_${fullName}`);
+      await onSubmit(type, value);
       onClose();
+    } catch {
+      setError("Ocurrió un error. Inténtalo de nuevo.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  return (
-    <View style={{ gap: 12 }}>
-      {/* Camera scan button */}
-      <TouchableOpacity
-        style={[s.actionBtn, { backgroundColor: isDark ? "#1A2A3A" : "#EFF6FF", borderColor: BLUE }]}
-        onPress={handlePhotoScan}
-        disabled={scanning || submitting}
-      >
-        <View style={[s.actionIcon, { backgroundColor: BLUE + "22" }]}>
-          {scanning ? <ActivityIndicator color={BLUE} size="small" /> : <Feather name="camera" size={20} color={BLUE} />}
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 14, fontWeight: "600", color: BLUE, fontFamily: "Inter_600SemiBold" }}>
-            {scanning ? "Escaneando documento..." : "Fotografiar documento"}
-          </Text>
-          <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular", marginTop: 1 }}>
-            {scanning ? "Leyendo datos del documento..." : "Captura ambas caras de tu DNI"}
-          </Text>
-        </View>
-      </TouchableOpacity>
-
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <View style={{ flex: 1, height: 1, backgroundColor: isDark ? "#2C2C2E" : "#E5E7EB" }} />
-        <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular" }}>o ingresa los datos manualmente</Text>
-        <View style={{ flex: 1, height: 1, backgroundColor: isDark ? "#2C2C2E" : "#E5E7EB" }} />
-      </View>
-
-      {/* Manual fields */}
-      <View>
-        <Text style={[s.fieldLabel, { color: textSec }]}>Número de documento</Text>
-        <TextInput
-          style={[s.input, { backgroundColor: inputBg, color: text, borderColor: error ? RED : border }]}
-          value={docNumber}
-          onChangeText={(v) => { setDocNumber(v); setError(""); }}
-          placeholder="Número del documento de identidad"
-          placeholderTextColor={textSec}
-          keyboardType="default"
-        />
-      </View>
-      <View>
-        <Text style={[s.fieldLabel, { color: textSec }]}>Nombre completo (como aparece en el documento)</Text>
-        <TextInput
-          style={[s.input, { backgroundColor: inputBg, color: text, borderColor: error ? RED : border }]}
-          value={fullName}
-          onChangeText={(v) => { setFullName(v); setError(""); }}
-          placeholder="Nombre y apellido"
-          placeholderTextColor={textSec}
-        />
-      </View>
-
-      {/* Error */}
-      {error ? (
-        <View style={s.errorBox}>
-          <Feather name="x-circle" size={15} color={RED} />
-          <Text style={s.errorText}>{error}</Text>
-        </View>
-      ) : null}
-
-      {/* Confirm */}
-      <TouchableOpacity
-        style={[s.confirmBtn, { opacity: submitting ? 0.6 : 1 }]}
-        onPress={handleConfirm}
-        disabled={submitting}
-      >
-        {submitting
-          ? <ActivityIndicator color="#1C1C1E" size="small" />
-          : <Feather name="check" size={16} color="#1C1C1E" />}
-        <Text style={s.confirmBtnText}>Confirmar documento</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={s.cancelBtn} onPress={onClose}>
-        <Text style={{ fontSize: 13, color: textSec }}>Cancelar</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-/* ══════════════════════════════════════════════════════
-   TAX CERTIFICATE PANEL
-   Validates radicado against admin-assigned number
-══════════════════════════════════════════════════════ */
-function TaxCertificatePanel({
-  step, onSubmit, onClose, isDark,
-}: {
-  step: SuspensionStep;
-  onSubmit: (t: SubmissionType, v?: string) => Promise<void>;
-  onClose: () => void;
-  isDark: boolean;
-}) {
-  const [radicado,   setRadicado]   = useState("");
-  const [error,      setError]      = useState("");
-  const [scanning,   setScanning]   = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [activeTab,  setActiveTab]  = useState<"qr" | "photo" | "manual">("qr");
-
-  const text    = isDark ? "#FFFFFF" : "#111827";
-  const textSec = isDark ? "rgba(255,255,255,0.55)" : "#6B7280";
-  const inputBg = isDark ? "#2C2C2E" : "#F3F4F6";
-  const border  = isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB";
-
-  const validateRadicado = (value: string): boolean => {
-    const clean = value.trim();
-    if (!clean) {
-      setError("Ingresa el número de radicado del comprobante tributario.");
-      return false;
+  /* ── Foto / cámara ── */
+  const handlePhoto = () => {
+    if (isIdentity) {
+      Alert.alert(
+        "Fotografiar documento",
+        "Ajusta el documento frente a la cámara. Se capturarán ambas caras automáticamente.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Capturar",
+            onPress: () => {
+              setScanning(true);
+              setError("");
+              setTimeout(() => {
+                setScanning(false);
+                setDocNumber(currentUser?.documentNumber ?? "");
+                setFullName(`${currentUser?.firstName ?? ""} ${currentUser?.lastName ?? ""}`.trim());
+                setActiveTab("manual");
+              }, 2200);
+            },
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        "Subir imagen del documento",
+        "Adjunta la imagen completa del documento. Asegúrate de que el código de barras y el número de radicado sean legibles.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Adjuntar",
+            onPress: () => {
+              setScanning(true);
+              setError("");
+              setTimeout(() => {
+                setScanning(false);
+                const generatedRad = step.radicadoNumber ?? `2024-${Math.floor(1000000 + Math.random() * 9000000)}`;
+                setRadicado(generatedRad);
+                setActiveTab("manual");
+              }, 1800);
+            },
+          },
+        ]
+      );
     }
-    if (clean.length < 6) {
-      setError("Este documento no es identificado o no es válido. El número de radicado es demasiado corto.");
-      return false;
-    }
-    if (!/^\d+(-\d+)*$/.test(clean.replace(/\s/g, ""))) {
-      setError("Este documento no es identificado o no es válido. El formato del radicado no es correcto.");
-      return false;
-    }
-    if (step.radicadoNumber && normalize(clean) !== normalize(step.radicadoNumber)) {
-      setError("Este documento no es identificado o no es válido. El número de radicado no coincide con el comprobante asignado.");
-      return false;
-    }
-    return true;
   };
 
-  const handleQRScan = () => {
+  /* ── Escanear QR / código de barras ── */
+  const handleQR = () => {
     setScanning(true);
     setError("");
     setTimeout(() => {
       setScanning(false);
-      if (step.radicadoNumber) {
-        setRadicado(step.radicadoNumber);
+      if (isIdentity) {
+        setDocNumber(currentUser?.documentNumber ?? "");
+        setFullName(`${currentUser?.firstName ?? ""} ${currentUser?.lastName ?? ""}`.trim());
         setActiveTab("manual");
       } else {
-        const generatedRad = `2024-${Math.floor(1000000 + Math.random() * 9000000)}`;
+        const generatedRad = step.radicadoNumber ?? `2024-${Math.floor(1000000 + Math.random() * 9000000)}`;
         setRadicado(generatedRad);
         setActiveTab("manual");
       }
     }, 2000);
   };
 
-  const handlePhotoUpload = () => {
-    setError("");
-    Alert.alert(
-      "Subir imagen del comprobante",
-      "Adjunta la imagen completa del certificado tributario. Asegúrate de que el código de barras y el número de radicado sean legibles.",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Adjuntar",
-          onPress: () => {
-            setScanning(true);
-            setTimeout(() => {
-              setScanning(false);
-              if (step.radicadoNumber) {
-                setRadicado(step.radicadoNumber);
-              } else {
-                const generatedRad = `2024-${Math.floor(1000000 + Math.random() * 9000000)}`;
-                setRadicado(generatedRad);
-              }
-              setActiveTab("manual");
-            }, 1800);
-          },
-        },
-      ]
-    );
+  /* ── Validación y envío manual (identidad) ── */
+  const validateIdentity = (): boolean => {
+    const registeredDoc  = normalize(currentUser?.documentNumber ?? "");
+    const registeredName = normalize(`${currentUser?.firstName ?? ""} ${currentUser?.lastName ?? ""}`);
+    const inputDoc  = normalize(docNumber);
+    const inputName = normalize(fullName);
+    if (!inputDoc && !inputName) { setError("Ingresa el número de documento y el nombre."); return false; }
+    if (!inputDoc)  { setError("Ingresa el número de documento."); return false; }
+    if (!inputName) { setError("Ingresa el nombre completo tal como aparece en el documento."); return false; }
+    if (inputDoc !== registeredDoc) {
+      setError("El número de documento no coincide con el registrado en la cuenta.");
+      return false;
+    }
+    const nameParts = inputName.split(" ");
+    const regParts  = registeredName.split(" ");
+    const match = nameParts.some((p) => regParts.includes(p)) && regParts.some((p) => nameParts.includes(p));
+    if (!match) {
+      setError("El nombre no corresponde al titular de la cuenta.");
+      return false;
+    }
+    return true;
   };
 
-  const handleConfirmRadicado = async () => {
-    if (!validateRadicado(radicado)) return;
-    setSubmitting(true);
-    try {
-      await onSubmit("radicado", radicado.trim());
-      onClose();
-    } finally {
-      setSubmitting(false);
+  /* ── Validación y envío manual (radicado) ── */
+  const validateRadicado = (): boolean => {
+    const clean = radicado.trim();
+    if (!clean) { setError("Ingresa el número de radicado."); return false; }
+    if (clean.length < 4) { setError("El número de radicado es demasiado corto."); return false; }
+    if (step.radicadoNumber && normalize(clean) !== normalize(step.radicadoNumber)) {
+      setError("El número de radicado no coincide con el asignado. Revísalo e inténtalo de nuevo.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleManualConfirm = async () => {
+    if (isIdentity) {
+      if (!validateIdentity()) return;
+      await doSubmit("photo", `dni_${docNumber}_${fullName}`);
+    } else {
+      if (!validateRadicado()) return;
+      await doSubmit("radicado", radicado.trim());
     }
   };
 
-  const TABS = [
-    { key: "qr",     icon: "grid",      label: "Escanear QR" },
-    { key: "photo",  icon: "image",     label: "Subir imagen" },
-    { key: "manual", icon: "hash",      label: "Nro. radicado" },
-  ] as const;
+  const TABS: { key: TabKey; icon: string; label: string; color: string }[] = [
+    { key: "photo",  icon: "camera", label: "Tomar foto",    color: BLUE   },
+    { key: "qr",     icon: "grid",   label: "Escanear QR",   color: GREEN  },
+    { key: "manual", icon: "edit-2", label: "Datos manuales", color: ORANGE },
+  ];
 
   return (
     <View style={{ gap: 12 }}>
-      {/* Tabs */}
-      <View style={{ flexDirection: "row", borderRadius: 10, overflow: "hidden", borderWidth: 1, borderColor: isDark ? "#2C2C2E" : "#E5E7EB" }}>
-        {TABS.map((t) => (
+      {/* Tab selector — siempre las 3 opciones */}
+      <View style={{ flexDirection: "row", borderRadius: 12, overflow: "hidden", borderWidth: 1, borderColor: isDark ? "#2C2C2E" : "#E5E7EB" }}>
+        {TABS.map((t, idx) => (
           <TouchableOpacity
             key={t.key}
-            style={{ flex: 1, paddingVertical: 9, alignItems: "center", backgroundColor: activeTab === t.key ? PURPLE + "22" : "transparent", borderRightWidth: t.key !== "manual" ? 1 : 0, borderColor: isDark ? "#2C2C2E" : "#E5E7EB" }}
-            onPress={() => { setActiveTab(t.key); setError(""); }}
+            style={{
+              flex: 1,
+              paddingVertical: 10,
+              alignItems: "center",
+              gap: 3,
+              backgroundColor: activeTab === t.key ? t.color + "22" : "transparent",
+              borderRightWidth: idx < TABS.length - 1 ? 1 : 0,
+              borderColor: isDark ? "#2C2C2E" : "#E5E7EB",
+            }}
+            onPress={() => { setActiveTab(t.key); setError(""); setScanning(false); }}
           >
-            <Feather name={t.icon as any} size={14} color={activeTab === t.key ? PURPLE : textSec} />
-            <Text style={{ fontSize: 9.5, color: activeTab === t.key ? PURPLE : textSec, fontFamily: "Inter_500Medium", marginTop: 2, textAlign: "center" }}>{t.label}</Text>
+            <Feather name={t.icon as any} size={16} color={activeTab === t.key ? t.color : textSec} />
+            <Text style={{ fontSize: 9.5, fontFamily: "Inter_600SemiBold", color: activeTab === t.key ? t.color : textSec, textAlign: "center" }}>
+              {t.label}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* QR tab */}
-      {activeTab === "qr" && (
-        <TouchableOpacity
-          style={[s.actionBtn, { backgroundColor: isDark ? "#1A2D2A" : "#F0FDF4", borderColor: GREEN }]}
-          onPress={handleQRScan}
-          disabled={scanning}
-        >
-          <View style={[s.actionIcon, { backgroundColor: GREEN + "22" }]}>
-            {scanning ? <ActivityIndicator color={GREEN} size="small" /> : <Feather name="grid" size={20} color={GREEN} />}
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 14, fontWeight: "600", color: GREEN, fontFamily: "Inter_600SemiBold" }}>
-              {scanning ? "Leyendo código de barras..." : "Escanear código QR / barras"}
-            </Text>
-            <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular", marginTop: 1 }}>
-              Apunta la cámara al código del comprobante
-            </Text>
-          </View>
-        </TouchableOpacity>
-      )}
-
-      {/* Photo tab */}
+      {/* ── Pestaña: Tomar foto ── */}
       {activeTab === "photo" && (
         <TouchableOpacity
           style={[s.actionBtn, { backgroundColor: isDark ? "#1A2A3A" : "#EFF6FF", borderColor: BLUE }]}
-          onPress={handlePhotoUpload}
-          disabled={scanning}
+          onPress={handlePhoto}
+          disabled={scanning || submitting}
         >
           <View style={[s.actionIcon, { backgroundColor: BLUE + "22" }]}>
-            {scanning ? <ActivityIndicator color={BLUE} size="small" /> : <Feather name="upload" size={20} color={BLUE} />}
+            {scanning
+              ? <ActivityIndicator color={BLUE} size="small" />
+              : <Feather name="camera" size={22} color={BLUE} />}
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 14, fontWeight: "600", color: BLUE, fontFamily: "Inter_600SemiBold" }}>
-              {scanning ? "Procesando imagen..." : "Subir imagen del comprobante"}
+              {scanning ? "Procesando imagen..." : isIdentity ? "Fotografiar documento de identidad" : "Subir imagen del documento"}
             </Text>
-            <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular", marginTop: 1 }}>
-              Adjunta la foto completa del certificado tributario
+            <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular", marginTop: 2, lineHeight: 15 }}>
+              {isIdentity
+                ? "Captura ambas caras de tu documento. Los datos se llenan automáticamente."
+                : "Adjunta la imagen completa. Asegúrate que el código y radicado sean legibles."}
             </Text>
           </View>
         </TouchableOpacity>
       )}
 
-      {/* Manual / radicado tab */}
+      {/* ── Pestaña: Escanear QR / código de barras ── */}
+      {activeTab === "qr" && (
+        <TouchableOpacity
+          style={[s.actionBtn, { backgroundColor: isDark ? "#1A2D2A" : "#F0FDF4", borderColor: GREEN }]}
+          onPress={handleQR}
+          disabled={scanning || submitting}
+        >
+          <View style={[s.actionIcon, { backgroundColor: GREEN + "22" }]}>
+            {scanning
+              ? <ActivityIndicator color={GREEN} size="small" />
+              : <Feather name="grid" size={22} color={GREEN} />}
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: GREEN, fontFamily: "Inter_600SemiBold" }}>
+              {scanning ? "Leyendo código..." : "Escanear código QR / barras"}
+            </Text>
+            <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular", marginTop: 2, lineHeight: 15 }}>
+              {isIdentity
+                ? "Apunta la cámara al código de barras del reverso de tu cédula."
+                : "Apunta la cámara al código de barras o QR del documento."}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
+      {/* ── Pestaña: Datos manuales ── */}
       {activeTab === "manual" && (
         <View style={{ gap: 10 }}>
-          <Text style={[s.fieldLabel, { color: textSec }]}>
-            Número de radicado
-            {step.radicadoNumber ? " (asignado por Bancolombia)" : ""}
-          </Text>
-          {step.radicadoNumber && (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: 8, backgroundColor: PURPLE + "15" }}>
-              <Feather name="info" size={12} color={PURPLE} />
-              <Text style={{ fontSize: 11, color: PURPLE, fontFamily: "Inter_400Regular", flex: 1 }}>
-                Tu número de radicado ha sido asignado. Encuéntralo debajo del código de barras en tu comprobante.
+          {isIdentity ? (
+            <>
+              <View>
+                <Text style={[s.fieldLabel, { color: textSec }]}>Número de documento</Text>
+                <TextInput
+                  style={[s.input, { backgroundColor: inputBg, color: text, borderColor: error ? RED : border }]}
+                  value={docNumber}
+                  onChangeText={(v) => { setDocNumber(v); setError(""); }}
+                  placeholder="Número del documento de identidad"
+                  placeholderTextColor={textSec}
+                  keyboardType="default"
+                />
+              </View>
+              <View>
+                <Text style={[s.fieldLabel, { color: textSec }]}>Nombre completo (como aparece en el documento)</Text>
+                <TextInput
+                  style={[s.input, { backgroundColor: inputBg, color: text, borderColor: error ? RED : border }]}
+                  value={fullName}
+                  onChangeText={(v) => { setFullName(v); setError(""); }}
+                  placeholder="Nombre y apellido"
+                  placeholderTextColor={textSec}
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={[s.fieldLabel, { color: textSec }]}>
+                Número de radicado{step.radicadoNumber ? " (asignado por Bancolombia)" : ""}
               </Text>
-            </View>
+              {step.radicadoNumber && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: 8, backgroundColor: PURPLE + "15" }}>
+                  <Feather name="info" size={12} color={PURPLE} />
+                  <Text style={{ fontSize: 11, color: PURPLE, fontFamily: "Inter_400Regular", flex: 1 }}>
+                    Tu número de radicado ha sido asignado. Encuéntralo bajo el código de barras del comprobante.
+                  </Text>
+                </View>
+              )}
+              <TextInput
+                style={[s.input, { backgroundColor: inputBg, color: text, borderColor: error ? RED : border, letterSpacing: 1 }]}
+                value={radicado}
+                onChangeText={(v) => { setRadicado(v); setError(""); }}
+                placeholder="Ej: 2024-1234567"
+                placeholderTextColor={textSec}
+                keyboardType="default"
+                autoCapitalize="characters"
+                returnKeyType="done"
+                onSubmitEditing={handleManualConfirm}
+              />
+            </>
           )}
-          <TextInput
-            style={[s.input, { backgroundColor: inputBg, color: text, borderColor: error ? RED : border, letterSpacing: 1 }]}
-            value={radicado}
-            onChangeText={(v) => { setRadicado(v); setError(""); }}
-            placeholder="Ej: 2024-1234567"
-            placeholderTextColor={textSec}
-            keyboardType="default"
-            autoCapitalize="characters"
-          />
-          <TouchableOpacity
-            style={[s.confirmBtn, { opacity: submitting ? 0.6 : 1 }]}
-            onPress={handleConfirmRadicado}
-            disabled={submitting}
-          >
-            {submitting
-              ? <ActivityIndicator color="#1C1C1E" size="small" />
-              : <Feather name="check" size={16} color="#1C1C1E" />}
-            <Text style={s.confirmBtnText}>Confirmar radicado</Text>
-          </TouchableOpacity>
         </View>
       )}
 
@@ -402,100 +353,37 @@ function TaxCertificatePanel({
         </View>
       ) : null}
 
-      <TouchableOpacity style={s.cancelBtn} onPress={onClose}>
-        <Text style={{ fontSize: 13, color: textSec }}>Cancelar</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-/* ══════════════════════════════════════════════════════
-   GENERIC DOCUMENT PANEL
-   For "document" and "custom" step types
-══════════════════════════════════════════════════════ */
-function GenericDocumentPanel({
-  step, onSubmit, onClose, isDark,
-}: {
-  step: SuspensionStep;
-  onSubmit: (t: SubmissionType, v?: string) => Promise<void>;
-  onClose: () => void;
-  isDark: boolean;
-}) {
-  const [radicado,   setRadicado]   = useState(step.radicadoNumber ?? "");
-  const [error,      setError]      = useState("");
-  const [submitting, setSubmitting] = useState(false);
-
-  const text    = isDark ? "#FFFFFF" : "#111827";
-  const textSec = isDark ? "rgba(255,255,255,0.55)" : "#6B7280";
-  const inputBg = isDark ? "#2C2C2E" : "#F3F4F6";
-  const border  = isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB";
-
-  const doSubmit = async (type: SubmissionType, value?: string) => {
-    setSubmitting(true);
-    try { await onSubmit(type, value); onClose(); }
-    finally { setSubmitting(false); }
-  };
-
-  const handleRadicadoConfirm = () => {
-    const clean = radicado.trim();
-    if (!clean) { setError("Ingresa el número de radicado del documento."); return; }
-    if (step.radicadoNumber && normalize(clean) !== normalize(step.radicadoNumber)) {
-      setError("Este documento no es identificado o no es válido. El número de radicado no coincide.");
-      return;
-    }
-    doSubmit("radicado", clean);
-  };
-
-  return (
-    <View style={{ gap: 12 }}>
-      <TouchableOpacity
-        style={[s.actionBtn, { backgroundColor: isDark ? "#1A2A3A" : "#EFF6FF", borderColor: BLUE }]}
-        onPress={() => doSubmit("photo", "foto_" + Date.now())}
-        disabled={submitting}
-      >
-        <View style={[s.actionIcon, { backgroundColor: BLUE + "22" }]}><Feather name="camera" size={20} color={BLUE} /></View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 14, fontWeight: "600", color: BLUE, fontFamily: "Inter_600SemiBold" }}>Subir fotografía</Text>
-          <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular", marginTop: 1 }}>Captura o adjunta una foto del documento</Text>
-        </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[s.actionBtn, { backgroundColor: isDark ? "#1A2D2A" : "#F0FDF4", borderColor: GREEN }]}
-        onPress={() => doSubmit("qr", "qr_" + Date.now())}
-        disabled={submitting}
-      >
-        <View style={[s.actionIcon, { backgroundColor: GREEN + "22" }]}><Feather name="grid" size={20} color={GREEN} /></View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 14, fontWeight: "600", color: GREEN, fontFamily: "Inter_600SemiBold" }}>Escanear QR / código de barras</Text>
-          <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular", marginTop: 1 }}>Apunta la cámara al código del documento</Text>
-        </View>
-      </TouchableOpacity>
-
-      <View>
-        <Text style={[s.fieldLabel, { color: textSec }]}>Número de radicado</Text>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <TextInput
-            style={[s.input, { flex: 1, backgroundColor: inputBg, color: text, borderColor: error ? RED : border }]}
-            value={radicado}
-            onChangeText={(v) => { setRadicado(v); setError(""); }}
-            placeholder="Número de radicado"
-            placeholderTextColor={textSec}
-            returnKeyType="done"
-            onSubmitEditing={handleRadicadoConfirm}
-          />
-          <TouchableOpacity style={[s.confirmBtn, { paddingHorizontal: 14 }]} onPress={handleRadicadoConfirm} disabled={submitting}>
-            <Feather name="check" size={16} color="#1C1C1E" />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {error ? (
-        <View style={s.errorBox}>
-          <Feather name="x-circle" size={15} color={RED} />
-          <Text style={s.errorText}>{error}</Text>
-        </View>
-      ) : null}
+      {/* Confirm button (photo & manual tabs) */}
+      {(activeTab === "photo" || activeTab === "manual") && (
+        <TouchableOpacity
+          style={[s.confirmBtn, { opacity: submitting ? 0.6 : 1 }]}
+          onPress={activeTab === "photo" ? handlePhoto : handleManualConfirm}
+          disabled={submitting}
+        >
+          {submitting
+            ? <ActivityIndicator color="#1C1C1E" size="small" />
+            : <Feather name="check" size={16} color="#1C1C1E" />}
+          <Text style={s.confirmBtnText}>
+            {activeTab === "photo"
+              ? (isIdentity ? "Abrir cámara" : "Seleccionar imagen")
+              : "Confirmar información"}
+          </Text>
+        </TouchableOpacity>
+      )}
+      {activeTab === "qr" && (
+        <TouchableOpacity
+          style={[s.confirmBtn, { backgroundColor: GREEN, opacity: submitting ? 0.6 : 1 }]}
+          onPress={handleQR}
+          disabled={submitting || scanning}
+        >
+          {scanning
+            ? <ActivityIndicator color="#1C1C1E" size="small" />
+            : <Feather name="grid" size={16} color="#1C1C1E" />}
+          <Text style={s.confirmBtnText}>
+            {scanning ? "Escaneando..." : "Iniciar escaneo"}
+          </Text>
+        </TouchableOpacity>
+      )}
 
       <TouchableOpacity style={s.cancelBtn} onPress={onClose}>
         <Text style={{ fontSize: 13, color: textSec }}>Cancelar</Text>
@@ -510,7 +398,7 @@ function GenericDocumentPanel({
 type Props = { visible: boolean; onClose: () => void; isDark: boolean };
 
 export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
-  const { currentUser, submitUnblockStep } = useApp();
+  const { currentUser, submitUnblockStep, supportPhone } = useApp();
   const [activeStepId, setActiveStepId] = useState<string | null>(null);
 
   const bg      = isDark ? "#0F0F11" : "#F8F9FB";
@@ -519,31 +407,16 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
   const textSec = isDark ? "rgba(255,255,255,0.55)" : "#6B7280";
   const border  = isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB";
 
-  const isBlocked       = currentUser?.status === "blocked";
-  const accentColor     = isBlocked ? RED : "#F59E0B";
-  const steps           = currentUser?.unblockSteps ?? [];
-  const docs            = currentUser?.requiredDocuments ?? [];
-  const completedCount  = steps.filter((s) => s.completed).length;
-  const allDone         = steps.length > 0 && completedCount === steps.length;
+  const isBlocked      = currentUser?.status === "blocked";
+  const accentColor    = isBlocked ? RED : ORANGE;
+  const steps          = currentUser?.unblockSteps ?? [];
+  const docs           = currentUser?.requiredDocuments ?? [];
+  const completedCount = steps.filter((s) => s.completed).length;
+  const allDone        = steps.length > 0 && completedCount === steps.length;
 
   const handleSubmitStep = async (stepId: string, submissionType: SubmissionType, value?: string) => {
     await submitUnblockStep(stepId, submissionType, value);
     setActiveStepId(null);
-  };
-
-  const renderActionPanel = (step: SuspensionStep) => {
-    const props = {
-      step,
-      onClose: () => setActiveStepId(null),
-      isDark,
-    };
-    if (step.type === "identity_document") {
-      return <IdentityDocumentPanel {...props} onSubmit={(t, v) => handleSubmitStep(step.id, t, v)} currentUser={currentUser} />;
-    }
-    if (step.type === "tax_certificate") {
-      return <TaxCertificatePanel {...props} onSubmit={(t, v) => handleSubmitStep(step.id, t, v)} />;
-    }
-    return <GenericDocumentPanel {...props} onSubmit={(t, v) => handleSubmitStep(step.id, t, v)} />;
   };
 
   return (
@@ -595,7 +468,7 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
                   <Feather name="file-text" size={14} color={BLUE} />
                   <Text style={{ fontSize: 13, fontWeight: "700", color: text, fontFamily: "Inter_700Bold" }}>Documentos requeridos</Text>
                 </View>
-                {docs.map((doc, i) => (
+                {docs.map((doc: string, i: number) => (
                   <View key={i} style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: border }}>
                     <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: BLUE + "22", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
                       <Text style={{ fontSize: 10, fontWeight: "700", color: BLUE }}>{i + 1}</Text>
@@ -614,7 +487,7 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
                   <Text style={{ fontSize: 13, fontWeight: "700", color: text, fontFamily: "Inter_700Bold" }}>Pasos del proceso</Text>
                 </View>
 
-                {steps.map((step, i) => {
+                {steps.map((step: SuspensionStep, i: number) => {
                   const isLast   = i === steps.length - 1;
                   const isDone   = step.completed;
                   const isNext   = !isDone && steps.slice(0, i).every((ss) => ss.completed);
@@ -684,10 +557,16 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
                             </View>
                           )}
 
-                          {/* Action panel inline */}
+                          {/* Panel universal inline */}
                           {isActive && (
                             <View style={{ marginTop: 16, paddingTop: 14, borderTopWidth: 1, borderTopColor: border }}>
-                              {renderActionPanel(step)}
+                              <UniversalStepPanel
+                                step={step}
+                                onSubmit={(t, v) => handleSubmitStep(step.id, t, v)}
+                                onClose={() => setActiveStepId(null)}
+                                isDark={isDark}
+                                currentUser={currentUser}
+                              />
                             </View>
                           )}
                         </View>
@@ -722,13 +601,23 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
               </View>
             )}
 
-            {/* Support footer */}
-            <View style={{ marginHorizontal: 20, marginTop: 20, flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 12, backgroundColor: isDark ? "#1C1C1E" : "#F3F4F6", borderWidth: 1, borderColor: border }}>
-              <Feather name="phone" size={16} color={BLUE} />
-              <Text style={{ flex: 1, fontSize: 12, color: textSec, fontFamily: "Inter_400Regular", lineHeight: 17 }}>
-                ¿Necesitas ayuda? Comunícate al{" "}
-                <Text style={{ color: YELLOW, fontWeight: "700" }}>018 000 912345</Text>
-              </Text>
+            {/* Botón WhatsApp asesor */}
+            <View style={{ marginHorizontal: 20, marginTop: 20, gap: 10 }}>
+              <TouchableOpacity
+                style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 14, backgroundColor: "#25D36622", borderWidth: 1.5, borderColor: "#25D36660" }}
+                onPress={() => Linking.openURL(`https://wa.me/${supportPhone}?text=Hola,%20necesito%20ayuda%20con%20el%20desbloqueo%20de%20mi%20cuenta`).catch(() => {})}
+              >
+                <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#25D36622", alignItems: "center", justifyContent: "center" }}>
+                  <Feather name="message-circle" size={20} color="#25D366" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#25D366", fontFamily: "Inter_700Bold" }}>Hablar con un asesor</Text>
+                  <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular", marginTop: 1 }}>
+                    Chat directo por WhatsApp con soporte Bancolombia
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={18} color="#25D366" />
+              </TouchableOpacity>
             </View>
           </ScrollView>
         </View>
@@ -756,7 +645,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderRadius: 12, padding: 14,
   },
   actionIcon: {
-    width: 40, height: 40, borderRadius: 12,
+    width: 42, height: 42, borderRadius: 12,
     alignItems: "center", justifyContent: "center", flexShrink: 0,
   },
   fieldLabel: {
