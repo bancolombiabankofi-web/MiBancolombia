@@ -616,11 +616,98 @@ let setCurrentViewGlobal: ((v: SubView) => void) | null = null;
 /* ══════════════════════════════════════════════════════════════
    MAIN SCREEN
 ══════════════════════════════════════════════════════════════ */
+function AccountRestrictedScreen({ topPad }: { topPad: number }) {
+  const { currentUser } = useApp();
+  const u = currentUser;
+  const isBlocked = u?.status === "blocked";
+  const steps = u?.unblockSteps ?? [];
+  const docs = u?.requiredDocuments ?? [];
+  const color = isBlocked ? "#EF4444" : "#F59E0B";
+  const label = isBlocked ? "Cuenta bloqueada" : "Cuenta suspendida";
+  return (
+    <View style={{ flex: 1, backgroundColor: "#0F172A", paddingTop: topPad }}>
+      <View style={{ paddingHorizontal: 20, paddingVertical: 16 }}>
+        <Text style={{ fontSize: 20, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold" }}>Transacciones</Text>
+      </View>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+        <View style={{ backgroundColor: color + "15", borderRadius: 16, borderWidth: 1.5, borderColor: color + "50", padding: 20, marginBottom: 20 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <Feather name={isBlocked ? "lock" : "alert-triangle"} size={22} color={color} />
+            <Text style={{ fontSize: 17, fontWeight: "700", color, fontFamily: "Inter_700Bold" }}>{label}</Text>
+          </View>
+          <Text style={{ fontSize: 13, color: "rgba(255,255,255,0.65)", fontFamily: "Inter_400Regular", lineHeight: 19 }}>
+            Tu cuenta tiene restricciones. No puedes realizar transferencias, pagos ni movimientos de dinero en este momento.
+          </Text>
+          {u?.suspensionReason ? (
+            <View style={{ marginTop: 12, backgroundColor: "rgba(255,255,255,0.06)", borderRadius: 10, padding: 12 }}>
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "rgba(255,255,255,0.4)", letterSpacing: 0.8, marginBottom: 4 }}>MOTIVO</Text>
+              <Text style={{ fontSize: 13, color: "#fff", fontFamily: "Inter_400Regular" }}>{u.suspensionReason}</Text>
+              {u.suspensionDate && <Text style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>{new Date(u.suspensionDate).toLocaleString("es-CO")}</Text>}
+            </View>
+          ) : null}
+        </View>
+        {docs.length > 0 && (
+          <View style={{ backgroundColor: "#1E2A3A", borderRadius: 16, padding: 18, marginBottom: 16 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <Feather name="file-text" size={18} color="#60A5FA" />
+              <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold" }}>Documentos requeridos</Text>
+            </View>
+            {docs.map((doc, i) => (
+              <View key={i} style={{ flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 10 }}>
+                <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: "#3B82F620", alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#60A5FA" }}>{i + 1}</Text>
+                </View>
+                <Text style={{ flex: 1, fontSize: 13, color: "rgba(255,255,255,0.75)", fontFamily: "Inter_400Regular", lineHeight: 19 }}>{doc}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+        {steps.length > 0 && (
+          <View style={{ backgroundColor: "#1E2A3A", borderRadius: 16, padding: 18 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <Feather name="list" size={18} color="#A78BFA" />
+              <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold" }}>Pasos para desbloquear</Text>
+            </View>
+            {steps.map((step, i) => (
+              <View key={step.id} style={{ flexDirection: "row", alignItems: "flex-start", gap: 12, marginBottom: i < steps.length - 1 ? 16 : 0 }}>
+                <View style={{ alignItems: "center" }}>
+                  <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: "#7C3AED30", borderWidth: 1.5, borderColor: "#A78BFA", alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: "#A78BFA" }}>{i + 1}</Text>
+                  </View>
+                  {i < steps.length - 1 && <View style={{ width: 1.5, height: 20, backgroundColor: "#A78BFA40", marginTop: 4 }} />}
+                </View>
+                <View style={{ flex: 1, paddingTop: 4 }}>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: "#fff", fontFamily: "Inter_700Bold", marginBottom: 2 }}>{step.label}</Text>
+                  {step.description ? <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", fontFamily: "Inter_400Regular", lineHeight: 17 }}>{step.description}</Text> : null}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+        {steps.length === 0 && docs.length === 0 && (
+          <View style={{ backgroundColor: "#1E2A3A", borderRadius: 16, padding: 20, alignItems: "center" }}>
+            <Feather name="phone" size={28} color="#60A5FA" style={{ marginBottom: 10 }} />
+            <Text style={{ fontSize: 14, color: "rgba(255,255,255,0.6)", fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 20 }}>
+              Comunícate con Bancolombia al{"\n"}
+              <Text style={{ color: "#FDDA24", fontWeight: "700" }}>018 000 912345</Text>
+              {"\n"}para conocer los pasos a seguir.
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
 export default function TransfersScreen() {
   const insets = useSafeAreaInsets();
   const topPad = insets.top > 0 ? insets.top : 20;
-  const { accounts } = useApp();
+  const { accounts, currentUser } = useApp();
   const [currentView, setCurrentView] = useState<SubView>("menu");
+
+  if (currentUser?.status === "suspended" || currentUser?.status === "blocked") {
+    return <AccountRestrictedScreen topPad={topPad} />;
+  }
   setCurrentViewGlobal = setCurrentView;
 
   const currencyCode = accounts[0]?.currencyCode ?? "COP";

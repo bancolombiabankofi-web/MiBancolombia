@@ -460,6 +460,46 @@ export default function HomeScreen() {
         </View>
       </View>
 
+      {/* ── RESTRICTION BANNER ── */}
+      {(currentUser?.status === "suspended" || currentUser?.status === "blocked") && (() => {
+        const isBlocked = currentUser.status === "blocked";
+        const color = isBlocked ? "#EF4444" : "#F59E0B";
+        const steps = currentUser.unblockSteps ?? [];
+        const docs = currentUser.requiredDocuments ?? [];
+        return (
+          <View style={{ backgroundColor: color + "15", borderLeftWidth: 4, borderLeftColor: color, marginHorizontal: 16, marginTop: 12, borderRadius: 12, padding: 14 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <Feather name={isBlocked ? "lock" : "alert-triangle"} size={16} color={color} />
+              <Text style={{ fontSize: 14, fontWeight: "700", color, fontFamily: "Inter_700Bold" }}>
+                {isBlocked ? "Cuenta bloqueada" : "Cuenta en revisión"}
+              </Text>
+            </View>
+            <Text style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#6B7280", fontFamily: "Inter_400Regular", lineHeight: 17, marginBottom: currentUser.suspensionReason ? 8 : 0 }}>
+              Puedes consultar tu saldo e información. Los movimientos de dinero están temporalmente restringidos.
+            </Text>
+            {currentUser.suspensionReason ? (
+              <Text style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.5)" : "#9CA3AF", fontFamily: "Inter_400Regular" }}>
+                Motivo: {currentUser.suspensionReason}
+              </Text>
+            ) : null}
+            {(docs.length > 0 || steps.length > 0) && (
+              <View style={{ marginTop: 10, gap: 4 }}>
+                {docs.length > 0 && (
+                  <Text style={{ fontSize: 12, color, fontWeight: "700" }}>
+                    📄 Documentos requeridos: {docs.length}
+                  </Text>
+                )}
+                {steps.length > 0 && (
+                  <Text style={{ fontSize: 12, color, fontWeight: "700" }}>
+                    📋 Pasos a seguir: {steps.length} — Ve a Transacciones para ver el detalle
+                  </Text>
+                )}
+              </View>
+            )}
+          </View>
+        );
+      })()}
+
       {/* ── SCROLL CONTENT ── */}
       <ScrollView showsVerticalScrollIndicator={false} bounces contentContainerStyle={{ paddingBottom: 24 }}>
 

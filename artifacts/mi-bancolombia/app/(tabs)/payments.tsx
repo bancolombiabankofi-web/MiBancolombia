@@ -472,11 +472,78 @@ function ExplorarView({ isDark, C, onNavigateRecargar, onNavigateFacturas }: {
 /* ══════════════════════════════════════════════════════════════
    MAIN SCREEN
 ══════════════════════════════════════════════════════════════ */
+function PaymentRestrictedScreen({ topPad, C }: { topPad: number; C: any }) {
+  const { currentUser } = useApp();
+  const u = currentUser;
+  const isBlocked = u?.status === "blocked";
+  const color = isBlocked ? "#EF4444" : "#F59E0B";
+  const steps = u?.unblockSteps ?? [];
+  const docs = u?.requiredDocuments ?? [];
+  return (
+    <View style={{ flex: 1, backgroundColor: C.background, paddingTop: topPad }}>
+      <View style={{ paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, borderBottomColor: C.border }}>
+        <Text style={{ fontSize: 22, fontWeight: "700", color: C.text, fontFamily: "Inter_700Bold" }}>Explora</Text>
+      </View>
+      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+        <View style={{ backgroundColor: color + "15", borderRadius: 16, borderWidth: 1.5, borderColor: color + "50", padding: 20, marginBottom: 20 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
+            <Feather name={isBlocked ? "lock" : "alert-triangle"} size={22} color={color} />
+            <Text style={{ fontSize: 17, fontWeight: "700", color, fontFamily: "Inter_700Bold" }}>
+              {isBlocked ? "Cuenta bloqueada" : "Cuenta suspendida"}
+            </Text>
+          </View>
+          <Text style={{ fontSize: 13, color: C.textSecondary, fontFamily: "Inter_400Regular", lineHeight: 19 }}>
+            Tu cuenta tiene restricciones. No puedes realizar pagos ni transacciones en este momento.
+          </Text>
+          {u?.suspensionReason ? (
+            <View style={{ marginTop: 12, backgroundColor: C.surface, borderRadius: 10, padding: 12 }}>
+              <Text style={{ fontSize: 11, fontWeight: "700", color: C.textSecondary, letterSpacing: 0.8, marginBottom: 4 }}>MOTIVO</Text>
+              <Text style={{ fontSize: 13, color: C.text, fontFamily: "Inter_400Regular" }}>{u.suspensionReason}</Text>
+            </View>
+          ) : null}
+        </View>
+        {docs.length > 0 && (
+          <View style={{ backgroundColor: C.surface, borderRadius: 16, padding: 18, marginBottom: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: "700", color: C.text, fontFamily: "Inter_700Bold", marginBottom: 12 }}>📄 Documentos requeridos</Text>
+            {docs.map((doc, i) => (
+              <View key={i} style={{ flexDirection: "row", gap: 10, marginBottom: 8 }}>
+                <Text style={{ fontSize: 13, color: "#60A5FA", fontWeight: "700" }}>{i + 1}.</Text>
+                <Text style={{ flex: 1, fontSize: 13, color: C.text, fontFamily: "Inter_400Regular", lineHeight: 19 }}>{doc}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+        {steps.length > 0 && (
+          <View style={{ backgroundColor: C.surface, borderRadius: 16, padding: 18 }}>
+            <Text style={{ fontSize: 14, fontWeight: "700", color: C.text, fontFamily: "Inter_700Bold", marginBottom: 14 }}>📋 Pasos para desbloquear</Text>
+            {steps.map((step, i) => (
+              <View key={step.id} style={{ flexDirection: "row", gap: 12, marginBottom: i < steps.length - 1 ? 14 : 0 }}>
+                <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: "#7C3AED30", borderWidth: 1.5, borderColor: "#A78BFA", alignItems: "center", justifyContent: "center" }}>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#A78BFA" }}>{i + 1}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: C.text, fontFamily: "Inter_700Bold" }}>{step.label}</Text>
+                  {step.description ? <Text style={{ fontSize: 12, color: C.textSecondary, marginTop: 2 }}>{step.description}</Text> : null}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+    </View>
+  );
+}
+
 export default function ExplorarScreen() {
   const insets = useSafeAreaInsets();
   const topPad = insets.top > 0 ? insets.top : 20;
   const { C, isDark } = useTheme();
+  const { currentUser } = useApp();
   const [subNav, setSubNav] = useState<"main" | "recargar" | "facturas">("main");
+
+  if (currentUser?.status === "suspended" || currentUser?.status === "blocked") {
+    return <PaymentRestrictedScreen topPad={topPad} C={C} />;
+  }
 
   // Simple inline recargar/facturas views navigated from Hogar services
   if (subNav === "recargar") {

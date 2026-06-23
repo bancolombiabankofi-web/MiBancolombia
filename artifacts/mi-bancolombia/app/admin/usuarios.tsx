@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
-import type { RegisteredUser } from "@/context/AppContext";
+import type { RegisteredUser, SuspensionStep } from "@/context/AppContext";
 import type { DocType } from "@/constants/countries";
 
 const BG = "#0F1320";
@@ -59,6 +59,11 @@ export default function UsuariosScreen() {
   const [suspendStatus, setSuspendStatus] = useState<"suspended" | "blocked">("suspended");
   const [suspendReason, setSuspendReason] = useState("");
   const [suspendCustomReason, setSuspendCustomReason] = useState("");
+  const [suspendDocs, setSuspendDocs] = useState<string[]>([]);
+  const [suspendNewDoc, setSuspendNewDoc] = useState("");
+  const [suspendSteps, setSuspendSteps] = useState<SuspensionStep[]>([]);
+  const [suspendNewStepLabel, setSuspendNewStepLabel] = useState("");
+  const [suspendNewStepDesc, setSuspendNewStepDesc] = useState("");
 
   const [newUser, setNewUser] = useState<{
     firstName: string; secondName: string; lastName: string; secondLastName: string;
@@ -137,16 +142,27 @@ export default function UsuariosScreen() {
 
   const toggleStatus = (u: RegisteredUser, status: "active" | "suspended" | "blocked") => {
     if (status === "active") {
-      updateUser(u.id, { status: "active", suspensionReason: undefined, suspensionDate: undefined })
-        .then(() => {
-          load();
-          if (selected?.id === u.id) setSelected((p) => p ? { ...p, status: "active", suspensionReason: undefined } : p);
-        });
+      updateUser(u.id, {
+        status: "active",
+        suspensionReason: undefined,
+        suspensionDate: undefined,
+        requiredDocuments: undefined,
+        unblockSteps: undefined,
+      }).then(() => {
+        load();
+        addAuditLog("ACTIVATE_USER", `Cuenta activada: ${u.firstName} ${u.lastName} (${u.documentNumber})`, u.id);
+        if (selected?.id === u.id) setSelected((p) => p ? { ...p, status: "active", suspensionReason: undefined, requiredDocuments: undefined, unblockSteps: undefined } : p);
+      });
     } else {
       setSuspendTarget(u);
       setSuspendStatus(status);
       setSuspendReason(SUSPENSION_REASONS[0]);
       setSuspendCustomReason("");
+      setSuspendDocs([]);
+      setSuspendNewDoc("");
+      setSuspendSteps([]);
+      setSuspendNewStepLabel("");
+      setSuspendNewStepDesc("");
       setSuspendModal(true);
     }
   };
@@ -160,11 +176,13 @@ export default function UsuariosScreen() {
       status: suspendStatus,
       suspensionReason: finalReason,
       suspensionDate: new Date().toISOString(),
+      requiredDocuments: suspendDocs.length > 0 ? suspendDocs : undefined,
+      unblockSteps: suspendSteps.length > 0 ? suspendSteps : undefined,
     });
     if (addAuditLog) {
       await addAuditLog(
         suspendStatus === "suspended" ? "SUSPEND_USER" : "BLOCK_USER",
-        `${STATUS_LABEL[suspendStatus]}: ${suspendTarget.firstName} ${suspendTarget.lastName} (${suspendTarget.documentNumber}) — Motivo: ${finalReason}`,
+        `${STATUS_LABEL[suspendStatus]}: ${suspendTarget.firstName} ${suspendTarget.lastName} (${suspendTarget.documentNumber}) — Motivo: ${finalReason} · Docs: ${suspendDocs.length} · Pasos: ${suspendSteps.length}`,
         suspendTarget.id
       );
     }
@@ -172,9 +190,32 @@ export default function UsuariosScreen() {
     setSuspendTarget(null);
     load();
     if (selected?.id === suspendTarget.id) {
-      setSelected((p) => p ? { ...p, status: suspendStatus, suspensionReason: finalReason } : p);
+      setSelected((p) => p ? {
+        ...p, status: suspendStatus, suspensionReason: finalReason,
+        requiredDocuments: suspendDocs.length > 0 ? suspendDocs : undefined,
+        unblockSteps: suspendSteps.length > 0 ? suspendSteps : undefined,
+      } : p);
     }
   };
+
+  const addDoc = () => {
+    const t = suspendNewDoc.trim();
+    if (!t) return;
+    setSuspendDocs((p) => [...p, t]);
+    setSuspendNewDoc("");
+  };
+
+  const removeDoc = (i: number) => setSuspendDocs((p) => p.filter((_, idx) => idx !== i));
+
+  const addStep = () => {
+    const label = suspendNewStepLabel.trim();
+    if (!label) return;
+    setSuspendSteps((p) => [...p, { id: Date.now().toString(), label, description: suspendNewStepDesc.trim() }]);
+    setSuspendNewStepLabel("");
+    setSuspendNewStepDesc("");
+  };
+
+  const removeStep = (id: string) => setSuspendSteps((p) => p.filter((s) => s.id !== id));
 
   const handleCreate = async () => {
     setCreateError("");
@@ -345,7 +386,7 @@ export default function UsuariosScreen() {
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>
-                {suspendStatus === "suspended" ? "Suspender usuario" : "Bloquear usuario"}
+                {suspendStatus === "suspended" ? "Suspender cuenta" : "Bloquear cuenta"}
               </Text>
               <TouchableOpacity onPress={() => setSuspendModal(false)}>
                 <Feather name="x" size={20} color={TEXTSEC} />
@@ -363,7 +404,8 @@ export default function UsuariosScreen() {
               </View>
             )}
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={[styles.editLabel, { marginBottom: 10 }]}>Motivo de {suspendStatus === "suspended" ? "suspensión" : "bloqueo"} *</Text>
+              {/* Motivo */}
+              <Text style={[styles.editLabel, { marginBottom: 10 }]}>Motivo *</Text>
               {SUSPENSION_REASONS.map((reason) => (
                 <TouchableOpacity
                   key={reason}
@@ -382,16 +424,92 @@ export default function UsuariosScreen() {
                     style={[styles.editInput, { minHeight: 72, textAlignVertical: "top" }]}
                     value={suspendCustomReason}
                     onChangeText={setSuspendCustomReason}
-                    placeholder="Escribe el motivo de suspensión..."
+                    placeholder="Escribe el motivo..."
                     placeholderTextColor={TEXTSEC}
                     multiline
                   />
                 </View>
               )}
+
+              {/* Documentos requeridos */}
+              <View style={styles.sectionSep} />
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <Feather name="file-text" size={15} color="#60A5FA" />
+                <Text style={styles.editLabel}>Documentos requeridos para desbloqueo</Text>
+              </View>
+              {suspendDocs.map((doc, i) => (
+                <View key={i} style={styles.chipRow}>
+                  <Text style={styles.chipText} numberOfLines={2}>{i + 1}. {doc}</Text>
+                  <TouchableOpacity onPress={() => removeDoc(i)} style={{ padding: 4 }}>
+                    <Feather name="x" size={14} color={RED} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <View style={styles.addRow}>
+                <TextInput
+                  style={[styles.editInput, { flex: 1, marginBottom: 0 }]}
+                  value={suspendNewDoc}
+                  onChangeText={setSuspendNewDoc}
+                  placeholder="Ej: Cédula de ciudadanía vigente"
+                  placeholderTextColor={TEXTSEC}
+                  onSubmitEditing={addDoc}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity style={styles.addBtn} onPress={addDoc}>
+                  <Feather name="plus" size={18} color={YELLOW} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Pasos del proceso */}
+              <View style={styles.sectionSep} />
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <Feather name="list" size={15} color="#A78BFA" />
+                <Text style={styles.editLabel}>Pasos del proceso de desbloqueo</Text>
+              </View>
+              {suspendSteps.map((step, i) => (
+                <View key={step.id} style={[styles.chipRow, { flexDirection: "column", alignItems: "flex-start", gap: 4 }]}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, width: "100%" }}>
+                    <View style={styles.stepNum}>
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: "#A78BFA" }}>{i + 1}</Text>
+                    </View>
+                    <Text style={[styles.chipText, { flex: 1 }]}>{step.label}</Text>
+                    <TouchableOpacity onPress={() => removeStep(step.id)} style={{ padding: 4 }}>
+                      <Feather name="x" size={14} color={RED} />
+                    </TouchableOpacity>
+                  </View>
+                  {step.description ? (
+                    <Text style={{ fontSize: 11, color: TEXTSEC, marginLeft: 30, fontFamily: "Inter_400Regular" }}>{step.description}</Text>
+                  ) : null}
+                </View>
+              ))}
+              <TextInput
+                style={[styles.editInput, { marginBottom: 8 }]}
+                value={suspendNewStepLabel}
+                onChangeText={setSuspendNewStepLabel}
+                placeholder="Título del paso (ej: Enviar documentos)"
+                placeholderTextColor={TEXTSEC}
+                returnKeyType="next"
+              />
+              <View style={styles.addRow}>
+                <TextInput
+                  style={[styles.editInput, { flex: 1, marginBottom: 0 }]}
+                  value={suspendNewStepDesc}
+                  onChangeText={setSuspendNewStepDesc}
+                  placeholder="Descripción adicional (opcional)"
+                  placeholderTextColor={TEXTSEC}
+                  returnKeyType="done"
+                  onSubmitEditing={addStep}
+                />
+                <TouchableOpacity style={styles.addBtn} onPress={addStep}>
+                  <Feather name="plus" size={18} color="#A78BFA" />
+                </TouchableOpacity>
+              </View>
+
               <TouchableOpacity
-                style={[styles.saveBtn, { backgroundColor: suspendStatus === "suspended" ? ORANGE : RED, marginTop: 16 }]}
+                style={[styles.saveBtn, { backgroundColor: suspendStatus === "suspended" ? ORANGE : RED, marginTop: 20 }]}
                 onPress={confirmSuspend}
               >
+                <Feather name={suspendStatus === "suspended" ? "alert-triangle" : "lock"} size={16} color="#fff" />
                 <Text style={styles.saveBtnText}>
                   {suspendStatus === "suspended" ? "Confirmar suspensión" : "Confirmar bloqueo"}
                 </Text>

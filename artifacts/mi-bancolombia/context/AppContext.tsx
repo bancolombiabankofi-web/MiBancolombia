@@ -13,6 +13,12 @@ import { getCountryByCode } from "@/constants/countries";
 
 export type ThemeMode = "system" | "light" | "dark";
 
+export type SuspensionStep = {
+  id: string;
+  label: string;
+  description: string;
+};
+
 export type RegisteredUser = {
   id: string;
   documentType: DocType;
@@ -38,6 +44,8 @@ export type RegisteredUser = {
   googleEmail?: string;
   suspensionReason?: string;
   suspensionDate?: string;
+  requiredDocuments?: string[];
+  unblockSteps?: SuspensionStep[];
 };
 
 export type { DocType };
@@ -504,12 +512,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const baseEvent = { timestamp, documentNumber, platform, deviceInfo };
 
     if (matched) {
-      if (matched.status === "suspended" || matched.status === "blocked") {
-        const [ip, geo] = await Promise.all([fetchPublicIP(), fetchGeoLocation()]);
-        await recordLoginEvent({ ...baseEvent, userId: matched.id, success: false, ip, ...geo });
-        return false;
-      }
-
       const adminFlag = matched.isAdmin === true;
       setIsAuthenticated(true);
       setIsAdmin(adminFlag);
