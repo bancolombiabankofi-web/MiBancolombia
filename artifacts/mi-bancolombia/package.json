@@ -57,6 +57,8 @@
   },
   "dependencies": {
     "@types/jsbarcode": "^3.11.4",
+    "@zxing/browser": "^0.2.0",
+    "@zxing/library": "^0.23.0",
     "expo-clipboard": "~8.0.8",
     "jsbarcode": "^3.12.3"
   }

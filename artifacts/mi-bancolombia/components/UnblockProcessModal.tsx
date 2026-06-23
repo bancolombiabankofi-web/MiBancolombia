@@ -76,20 +76,32 @@ function normalize(s: string) {
     .trim();
 }
 
-/* Try to detect a barcode from an image URI using BarcodeDetector API (web) */
+/* Try to detect a barcode from an image URI — BarcodeDetector (Chrome/Android) then ZXing fallback */
 async function detectBarcodeFromImageUri(uri: string): Promise<string | null> {
   if (Platform.OS !== "web") return null;
-  if (typeof (window as any).BarcodeDetector === "undefined") return null;
+
+  // 1. Native BarcodeDetector (Chrome/Android — fastest when available)
+  if (typeof (window as any).BarcodeDetector !== "undefined") {
+    try {
+      const res = await fetch(uri);
+      const blob = await res.blob();
+      const img = await createImageBitmap(blob);
+      const detector = new (window as any).BarcodeDetector({
+        formats: ["code_128", "code_39", "code_93", "qr_code", "ean_13", "ean_8"],
+      });
+      const results = await detector.detect(img);
+      if (results.length > 0) return results[0].rawValue as string;
+    } catch {}
+  }
+
+  // 2. ZXing fallback — works on Firefox, Safari, desktop Chrome
   try {
-    const res = await fetch(uri);
-    const blob = await res.blob();
-    const img = await createImageBitmap(blob);
-    const detector = new (window as any).BarcodeDetector({
-      formats: ["code_128", "code_39", "code_93", "qr_code", "ean_13", "ean_8"],
-    });
-    const results = await detector.detect(img);
-    if (results.length > 0) return results[0].rawValue as string;
+    const { BrowserMultiFormatReader } = await import("@zxing/browser");
+    const reader = new BrowserMultiFormatReader();
+    const result = await reader.decodeFromImageUrl(uri);
+    if (result) return result.getText();
   } catch {}
+
   return null;
 }
 
