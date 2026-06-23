@@ -459,20 +459,36 @@ function UniversalStepPanel({
             <View style={{ padding: 12, gap: 10, backgroundColor: isDark ? "#1C1C1E" : "#FAFAFA" }}>
               <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
                 <View style={{ flex: 1, minWidth: 110 }}>
-                  <Text style={{ fontSize: 9, color: textSec, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.5 }}>Titular</Text>
-                  <Text style={{ fontSize: 12, color: text, fontFamily: "Inter_600SemiBold", marginTop: 2 }}>{verifyResult.record.userName}</Text>
+                  <Text style={{ fontSize: 9, color: textSec, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.5 }}>Titular de la cuenta</Text>
+                  <Text style={{ fontSize: 13, color: text, fontFamily: "Inter_700Bold", marginTop: 2 }}>{verifyResult.record.userName}</Text>
                 </View>
                 <View style={{ flex: 1, minWidth: 110 }}>
                   <Text style={{ fontSize: 9, color: textSec, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.5 }}>N° Documento</Text>
-                  <Text style={{ fontSize: 13, color: text, fontFamily: "Inter_700Bold", marginTop: 2, letterSpacing: 3 }}>
+                  <Text style={{ fontSize: 14, color: text, fontFamily: "Inter_700Bold", marginTop: 2, letterSpacing: 4 }}>
                     {censorDoc(verifyResult.record.documentNumber)}
                   </Text>
                 </View>
               </View>
+              <View style={{ height: 1, backgroundColor: isDark ? "rgba(255,255,255,0.07)" : "#E5E7EB" }} />
               <View>
-                <Text style={{ fontSize: 9, color: textSec, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.5 }}>Motivo / Trámite</Text>
-                <Text style={{ fontSize: 12, color: text, fontFamily: "Inter_400Regular", marginTop: 2 }}>{verifyResult.record.motive}</Text>
+                <Text style={{ fontSize: 9, color: textSec, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.5 }}>Trámite</Text>
+                <Text style={{ fontSize: 13, color: text, fontFamily: "Inter_600SemiBold", marginTop: 2 }}>{verifyResult.record.motive}</Text>
               </View>
+              {verifyResult.record.description ? (
+                <View>
+                  <Text style={{ fontSize: 9, color: textSec, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.5 }}>Descripción</Text>
+                  <Text style={{ fontSize: 12, color: text, fontFamily: "Inter_400Regular", marginTop: 2, lineHeight: 17 }}>{verifyResult.record.description}</Text>
+                </View>
+              ) : null}
+              {verifyResult.record.referenceCode ? (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8, backgroundColor: PURPLE + "15", borderWidth: 1, borderColor: PURPLE + "40" }}>
+                  <Feather name="hash" size={13} color={PURPLE} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 9, color: PURPLE, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.5 }}>Código de referencia</Text>
+                    <Text style={{ fontSize: 13, color: PURPLE, fontFamily: "Inter_700Bold", marginTop: 1, letterSpacing: 1 }}>{verifyResult.record.referenceCode}</Text>
+                  </View>
+                </View>
+              ) : null}
               {verifyResult.record.expiresAt && (
                 <RadicadoCountdown expiresAt={verifyResult.record.expiresAt} />
               )}
@@ -842,7 +858,7 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
                           >
                             <Feather name={isPanelOpen ? "x" : "upload"} size={15} color={isPanelOpen ? ORANGE : "#000"} />
                             <Text style={{ fontSize: 13, fontWeight: "700", fontFamily: "Inter_700Bold", color: isPanelOpen ? ORANGE : "#000" }}>
-                              {isPanelOpen ? "Cancelar" : "Entregar comprobante"}
+                              {isPanelOpen ? "Cancelar" : "Subir documento"}
                             </Text>
                           </TouchableOpacity>
                           {isPanelOpen && (
@@ -964,7 +980,7 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
                             >
                               <Feather name="upload" size={13} color={isRadicado ? YELLOW : GREEN} />
                               <Text style={{ fontSize: 12, fontWeight: "700", fontFamily: "Inter_700Bold", color: isRadicado ? YELLOW : GREEN }}>
-                                {isRadicado ? "Entregar comprobante" : "Enviar documentación"}
+                                {isRadicado ? "Subir documento" : "Enviar documentación"}
                               </Text>
                             </TouchableOpacity>
                           )}

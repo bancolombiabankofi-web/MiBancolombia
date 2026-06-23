@@ -29,6 +29,7 @@ export type SuspensionStep = {
   submissionType?: SubmissionType;
   submittedImageBase64?: string;
   submittedImageMime?: string;
+  locked?: boolean;
 };
 
 export type RegisteredUser = {

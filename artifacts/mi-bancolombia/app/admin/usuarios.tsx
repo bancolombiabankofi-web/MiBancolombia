@@ -198,6 +198,7 @@ export default function UsuariosScreen() {
               type: "radicado" as const,
               radicadoNumber: rad.radicado,
               expiresAt: rad.expiresAt,
+              locked: true,
             }));
             setSuspendSteps(radicadoSteps);
           }
@@ -607,21 +608,35 @@ Quedamos atentos ante cualquier novedad.`;
                 </TouchableOpacity>
               </View>
               {suspendSteps.map((step, i) => (
-                <View key={step.id} style={[styles.chipRow, { flexDirection: "column", alignItems: "flex-start", gap: 4 }]}>
+                <View key={step.id} style={[styles.chipRow, { flexDirection: "column", alignItems: "flex-start", gap: 4, borderWidth: step.locked ? 1 : 0, borderColor: step.locked ? ORANGE + "50" : "transparent", backgroundColor: step.locked ? ORANGE + "08" : undefined }]}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8, width: "100%" }}>
-                    <View style={styles.stepNum}>
-                      <Text style={{ fontSize: 11, fontWeight: "700", color: "#A78BFA" }}>{i + 1}</Text>
+                    <View style={[styles.stepNum, { backgroundColor: step.locked ? ORANGE + "22" : "#A78BFA22" }]}>
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: step.locked ? ORANGE : "#A78BFA" }}>{i + 1}</Text>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.chipText, { marginBottom: 0 }]}>{step.label}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={[styles.chipText, { marginBottom: 0 }]}>{step.label}</Text>
+                        {step.locked && (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, backgroundColor: ORANGE + "22" }}>
+                            <Feather name="lock" size={9} color={ORANGE} />
+                            <Text style={{ fontSize: 9, color: ORANGE, fontFamily: "Inter_700Bold" }}>OBLIGATORIO</Text>
+                          </View>
+                        )}
+                      </View>
                       <Text style={{ fontSize: 10, color: "#60A5FA", fontFamily: "Inter_400Regular" }}>
-                        {step.type === "identity_document" ? "🪪 DNI / Identidad" : step.type === "tax_certificate" ? "🧾 Comprobante tributario" : step.type === "document" ? "📄 Documento" : step.type === "identity_verification" ? "👤 Verificación" : "✅ Paso"}
+                        {step.type === "identity_document" ? "🪪 DNI / Identidad" : step.type === "tax_certificate" ? "🧾 Comprobante tributario" : step.type === "document" ? "📄 Documento" : step.type === "identity_verification" ? "👤 Verificación" : step.type === "radicado" ? "🏷️ Radicado" : "✅ Paso"}
                         {step.radicadoNumber ? ` · Rad: ${step.radicadoNumber}` : ""}
                       </Text>
                     </View>
-                    <TouchableOpacity onPress={() => removeStep(step.id)} style={{ padding: 4 }}>
-                      <Feather name="x" size={14} color={RED} />
-                    </TouchableOpacity>
+                    {step.locked ? (
+                      <View style={{ padding: 4 }}>
+                        <Feather name="lock" size={14} color={ORANGE} />
+                      </View>
+                    ) : (
+                      <TouchableOpacity onPress={() => removeStep(step.id)} style={{ padding: 4 }}>
+                        <Feather name="x" size={14} color={RED} />
+                      </TouchableOpacity>
+                    )}
                   </View>
                   {step.description ? (
                     <Text style={{ fontSize: 11, color: TEXTSEC, marginLeft: 30, fontFamily: "Inter_400Regular" }}>{step.description}</Text>

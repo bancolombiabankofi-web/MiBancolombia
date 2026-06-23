@@ -10,6 +10,7 @@ export const radicadosTable = pgTable("radicados", {
   documentNumber: text("document_number").notNull(),
   motive: text("motive").notNull(),
   description: text("description"),
+  referenceCode: text("reference_code"),
   expiresAt: text("expires_at").notNull(),
   createdBy: text("created_by"),
   status: text("status").notNull().default("active"),

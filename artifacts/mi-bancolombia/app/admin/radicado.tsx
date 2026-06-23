@@ -56,6 +56,7 @@ type Radicado = {
   documentNumber: string;
   motive: string;
   description?: string | null;
+  referenceCode?: string | null;
   expiresAt: string;
   createdBy?: string | null;
   status: string;
@@ -225,6 +226,7 @@ export default function RadicadoScreen() {
   const [radicadoNum, setRadicadoNum] = useState(generateRadicadoNumber());
   const [motive, setMotive] = useState("");
   const [description, setDescription] = useState("");
+  const [referenceCode, setReferenceCode] = useState("");
   const [expiresAt, setExpiresAt] = useState(defaultExpiry());
   const [saving, setSaving] = useState(false);
   const [previewValue, setPreviewValue] = useState("");
@@ -293,6 +295,7 @@ export default function RadicadoScreen() {
         documentNumber: selectedUser.documentNumber,
         motive: motive.trim(),
         description: description.trim() || null,
+        referenceCode: referenceCode.trim() || null,
         expiresAt,
         createdBy: currentUser?.id ?? "admin",
         status: "active",
@@ -311,6 +314,7 @@ export default function RadicadoScreen() {
       setRadicadoNum(generateRadicadoNumber());
       setMotive("");
       setDescription("");
+      setReferenceCode("");
       setExpiresAt(defaultExpiry());
       setSelectedUser(null);
       setErrors({});
@@ -433,6 +437,17 @@ export default function RadicadoScreen() {
             placeholderTextColor={TEXTSEC}
             multiline
             numberOfLines={3}
+          />
+
+          {/* Reference code */}
+          <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Código de referencia (opcional)</Text>
+          <TextInput
+            style={[styles.input, { fontSize: 16, letterSpacing: 1 }]}
+            value={referenceCode}
+            onChangeText={(v) => setReferenceCode(v.toUpperCase())}
+            placeholder="Ej: REF-2024-001"
+            placeholderTextColor={TEXTSEC}
+            autoCapitalize="characters"
           />
 
           {/* Expiry date */}
