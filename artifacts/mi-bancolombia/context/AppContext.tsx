@@ -187,27 +187,31 @@ type AppContextType = {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const ADMIN_USER: RegisteredUser = {
-  id: "admin-root",
-  documentType: "CC",
-  documentNumber: "1083838423",
-  countryResidence: "CO",
-  countryBirth: "CO",
-  currencyCode: "COP",
-  currencySymbol: "$",
-  firstName: "Administrador",
-  secondName: "",
-  lastName: "Bancolombia",
-  secondLastName: "",
-  birthDate: "01/01/1990",
-  email: "admin@bancolombia.com.co",
-  phone: "3000000000",
-  pin: "1234",
-  createdAt: "2024-01-01T00:00:00.000Z",
-  isAdmin: true,
-  status: "active",
-};
+// --- API helpers ---
+// Use relative URL so both dev (proxied at /) and prod work seamlessly.
+const API = "/api";
 
+async function apiFetch(path: string, init?: RequestInit) {
+  const res = await fetch(`${API}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...(init?.headers ?? {}),
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw Object.assign(new Error(err.error ?? res.statusText), { status: res.status });
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+function uid() {
+  return `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
+
+// --- Device helpers ---
 function generateAccountNumber(): string {
   const num = Math.floor(Math.random() * 9000) + 1000;
   return `****${num}`;
@@ -225,11 +229,11 @@ function generateExpiry(): string {
   return `${month}/${String(year).slice(2)}`;
 }
 
-function buildInitialAccounts(user: RegisteredUser): Account[] {
+function buildInitialAccounts(user: RegisteredUser): Omit<Account, "createdAt">[] {
   const c = getCountryByCode(user.countryResidence);
   return [
     {
-      id: `acc_${user.id}_1`,
+      id: `acc_${user.id}_${uid()}`,
       userId: user.id,
       type: "savings",
       number: generateAccountNumber(),
@@ -239,15 +243,14 @@ function buildInitialAccounts(user: RegisteredUser): Account[] {
       currencySymbol: user.currencySymbol ?? "$",
       name: "Cuenta de Ahorros",
       status: "active",
-      createdAt: new Date().toISOString(),
     },
   ];
 }
 
-function buildInitialCards(user: RegisteredUser): Card[] {
+function buildInitialCards(user: RegisteredUser): Omit<Card, "createdAt"> [] {
   return [
     {
-      id: `card_${user.id}_1`,
+      id: `card_${user.id}_${uid()}`,
       userId: user.id,
       type: "debit",
       number: generateCardNumber(),
@@ -312,174 +315,59 @@ async function fetchGeoLocation(): Promise<{ latitude: string; longitude: string
   }
 }
 
-const SAMPLE_USER: RegisteredUser = {
-  id: "usr_alejandra_001",
-  documentType: "CC",
-  documentNumber: "1234567890",
-  countryResidence: "CO",
-  countryBirth: "CO",
-  currencyCode: "COP",
-  currencySymbol: "$",
-  firstName: "Alejandra",
-  secondName: "",
-  lastName: "García",
-  secondLastName: "",
-  birthDate: "15/06/1995",
-  email: "alejandra@bancolombia.com.co",
-  phone: "3001234567",
-  pin: "1234",
-  createdAt: "2024-01-01T00:00:00.000Z",
-  isAdmin: false,
-  status: "active",
-};
-
-const SAMPLE_ACCOUNTS: Account[] = [
-  {
-    id: "acc_alejandra_1",
-    userId: "usr_alejandra_001",
-    type: "savings",
-    number: "****5678",
-    balance: 2654112,
-    currency: "Peso colombiano",
-    currencyCode: "COP",
-    currencySymbol: "$",
-    name: "Cuenta de Ahorros",
-    status: "active",
-    createdAt: "2024-01-01T00:00:00.000Z",
-  },
-  {
-    id: "acc_alejandra_2",
-    userId: "usr_alejandra_001",
-    type: "checking",
-    number: "****9012",
-    balance: 450000,
-    currency: "Peso colombiano",
-    currencyCode: "COP",
-    currencySymbol: "$",
-    name: "Cuenta Corriente",
-    status: "active",
-    createdAt: "2024-01-01T00:00:00.000Z",
-  },
-];
-
-const SAMPLE_TRANSACTIONS: Transaction[] = [
-  {
-    id: "tx_s1",
-    userId: "usr_alejandra_001",
-    date: new Date().toISOString().split("T")[0],
-    description: "Transferencia recibida - Carlos M.",
-    amount: 500000,
-    type: "credit",
-    category: "Transferencias",
-    accountId: "acc_alejandra_1",
-    status: "completed",
-  },
-  {
-    id: "tx_s2",
-    userId: "usr_alejandra_001",
-    date: new Date().toISOString().split("T")[0],
-    description: "Pago Factura ETB",
-    amount: -120000,
-    type: "debit",
-    category: "Servicios",
-    accountId: "acc_alejandra_1",
-    status: "completed",
-  },
-  {
-    id: "tx_s3",
-    userId: "usr_alejandra_001",
-    date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
-    description: "Recarga Claro",
-    amount: -30000,
-    type: "debit",
-    category: "Recargas",
-    accountId: "acc_alejandra_1",
-    status: "completed",
-  },
-  {
-    id: "tx_s4",
-    userId: "usr_alejandra_001",
-    date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
-    description: "Nómina Empresa SAS",
-    amount: 3500000,
-    type: "credit",
-    category: "Nómina",
-    accountId: "acc_alejandra_1",
-    status: "completed",
-  },
-  {
-    id: "tx_s5",
-    userId: "usr_alejandra_001",
-    date: new Date(Date.now() - 172800000).toISOString().split("T")[0],
-    description: "Supermercado Éxito",
-    amount: -85000,
-    type: "debit",
-    category: "Compras",
-    accountId: "acc_alejandra_1",
-    status: "completed",
-  },
-];
-
-async function seedAdmin() {
-  const usersJson = await AsyncStorage.getItem("registeredUsers");
-  const users: RegisteredUser[] = usersJson ? JSON.parse(usersJson) : [];
-  const sampleExists = users.find((u) => u.id === "usr_alejandra_001");
-
-  // Always replace the admin user to keep credentials in sync with ADMIN_USER constant
-  const withoutAdmin = users.filter((u) => u.id !== "admin-root");
-  const newUsers = [...withoutAdmin, ADMIN_USER];
-  if (!sampleExists) newUsers.push(SAMPLE_USER);
-  await AsyncStorage.setItem("registeredUsers", JSON.stringify(newUsers));
-
-  if (!sampleExists) {
-    await AsyncStorage.setItem("accounts_usr_alejandra_001", JSON.stringify(SAMPLE_ACCOUNTS));
-    await AsyncStorage.setItem("transactions_usr_alejandra_001", JSON.stringify(SAMPLE_TRANSACTIONS));
-  }
-}
-
 async function recordLoginEvent(event: Omit<LoginEvent, "id">) {
   try {
-    const stored = await AsyncStorage.getItem("loginEvents");
-    const events: LoginEvent[] = stored ? JSON.parse(stored) : [];
-    const newEvent: LoginEvent = { ...event, id: `login_${Date.now()}_${Math.random().toString(36).slice(2)}` };
-    await AsyncStorage.setItem("loginEvents", JSON.stringify([newEvent, ...events].slice(0, 2000)));
+    await apiFetch("/login-events", {
+      method: "POST",
+      body: JSON.stringify({ ...event, id: `login_${uid()}` }),
+    });
   } catch { /* non-blocking */ }
 }
 
 async function recordAuditLog(adminId: string, action: string, details: string, targetUserId?: string) {
   try {
-    const stored = await AsyncStorage.getItem("auditLogs");
-    const logs: AuditLog[] = stored ? JSON.parse(stored) : [];
-    const newLog: AuditLog = {
-      id: `log_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      timestamp: new Date().toISOString(),
-      adminId,
-      action,
-      details,
-      targetUserId,
-    };
-    await AsyncStorage.setItem("auditLogs", JSON.stringify([newLog, ...logs].slice(0, 2000)));
+    await apiFetch("/audit-logs", {
+      method: "POST",
+      body: JSON.stringify({
+        id: `log_${uid()}`,
+        timestamp: new Date().toISOString(),
+        adminId,
+        action,
+        details,
+        targetUserId: targetUserId ?? null,
+      }),
+    });
   } catch { /* non-blocking */ }
 }
 
 async function loadUserData(user: RegisteredUser) {
-  const [storedAccounts, storedTx, storedCards] = await Promise.all([
-    AsyncStorage.getItem(`accounts_${user.id}`),
-    AsyncStorage.getItem(`transactions_${user.id}`),
-    AsyncStorage.getItem(`cards_${user.id}`),
+  const [accounts, transactions, cards] = await Promise.all([
+    apiFetch(`/accounts?userId=${encodeURIComponent(user.id)}`),
+    apiFetch(`/transactions?userId=${encodeURIComponent(user.id)}`),
+    apiFetch(`/cards?userId=${encodeURIComponent(user.id)}`),
   ]);
-  let accounts: Account[] = storedAccounts ? JSON.parse(storedAccounts) : [];
-  let cards: Card[] = storedCards ? JSON.parse(storedCards) : [];
-  let transactions: Transaction[] = storedTx ? JSON.parse(storedTx) : [];
-  if (accounts.length === 0) {
-    accounts = buildInitialAccounts(user);
-    await AsyncStorage.setItem(`accounts_${user.id}`, JSON.stringify(accounts));
+
+  let accs: Account[] = accounts ?? [];
+  let crds: Card[] = cards ?? [];
+  const txs: Transaction[] = transactions ?? [];
+
+  // Create initial accounts and cards if none exist yet
+  if (accs.length === 0) {
+    const initAccounts = buildInitialAccounts(user);
+    for (const acc of initAccounts) {
+      await apiFetch("/accounts", { method: "POST", body: JSON.stringify(acc) });
+    }
+    accs = initAccounts as Account[];
   }
-  if (cards.length === 0) {
-    cards = buildInitialCards(user);
-    await AsyncStorage.setItem(`cards_${user.id}`, JSON.stringify(cards));
+  if (crds.length === 0) {
+    const initCards = buildInitialCards(user);
+    for (const card of initCards) {
+      await apiFetch("/cards", { method: "POST", body: JSON.stringify(card) });
+    }
+    crds = initCards as Card[];
   }
-  return { accounts, transactions, cards };
+
+  return { accounts: accs, transactions: txs, cards: crds };
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -495,27 +383,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     (async () => {
-      await seedAdmin();
-      const [auth, theme, userJson, adminFlag, phone] = await Promise.all([
+      const [auth, theme, userJson, adminFlag] = await Promise.all([
         AsyncStorage.getItem("auth"),
         AsyncStorage.getItem("themeMode"),
         AsyncStorage.getItem("currentUser"),
         AsyncStorage.getItem("isAdmin"),
-        AsyncStorage.getItem("supportPhone"),
       ]);
       setThemeModeState((theme as ThemeMode) ?? "dark");
-      if (phone) setSupportPhoneState(phone);
+
+      // Load supportPhone from shared API
+      try {
+        const settings = await apiFetch("/settings");
+        if (settings?.supportPhone) setSupportPhoneState(settings.supportPhone);
+      } catch { /* use default */ }
+
       if (auth === "true") {
         setIsAuthenticated(true);
         if (adminFlag === "true") setIsAdmin(true);
         if (userJson) {
-          const user: RegisteredUser = JSON.parse(userJson);
-          setCurrentUser(user);
-          if (!user.isAdmin) {
-            const data = await loadUserData(user);
-            setCurrentAccounts(data.accounts);
-            setCurrentTransactions(data.transactions);
-            setCurrentCards(data.cards);
+          const localUser: RegisteredUser = JSON.parse(userJson);
+          // Re-fetch user from API to get latest state (e.g. status changes)
+          try {
+            const freshUser: RegisteredUser = await apiFetch(`/users/${localUser.id}`);
+            setCurrentUser(freshUser);
+            await AsyncStorage.setItem("currentUser", JSON.stringify(freshUser));
+            if (!freshUser.isAdmin) {
+              const data = await loadUserData(freshUser);
+              setCurrentAccounts(data.accounts);
+              setCurrentTransactions(data.transactions);
+              setCurrentCards(data.cards);
+            }
+          } catch {
+            // API unavailable — fall back to cached user
+            setCurrentUser(localUser);
+            if (!localUser.isAdmin) {
+              const data = await loadUserData(localUser);
+              setCurrentAccounts(data.accounts);
+              setCurrentTransactions(data.transactions);
+              setCurrentCards(data.cards);
+            }
           }
         }
       }
@@ -539,17 +445,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = useCallback(async (documentNumber: string, pin: string): Promise<boolean> => {
-    const usersJson = await AsyncStorage.getItem("registeredUsers");
-    const users: RegisteredUser[] = usersJson ? JSON.parse(usersJson) : [];
     const deviceInfo = getDeviceInfo();
     const timestamp = new Date().toISOString();
     const platform = Platform.OS;
-
-    const matched = users.find((u) => u.pin === pin && u.documentNumber === documentNumber);
-
     const baseEvent = { timestamp, documentNumber, platform, deviceInfo };
 
-    if (matched) {
+    try {
+      const { user: matched }: { user: RegisteredUser } = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ documentNumber, pin }),
+      });
+
       const adminFlag = matched.isAdmin === true;
       setIsAuthenticated(true);
       setIsAdmin(adminFlag);
@@ -578,12 +484,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
 
       return true;
+    } catch (err: any) {
+      Promise.all([fetchPublicIP(), fetchGeoLocation()]).then(async ([ip, geo]) => {
+        await recordLoginEvent({ ...baseEvent, userId: null, success: false, ip, ...geo });
+      });
+      return false;
     }
-
-    Promise.all([fetchPublicIP(), fetchGeoLocation()]).then(async ([ip, geo]) => {
-      await recordLoginEvent({ ...baseEvent, userId: null, success: false, ip, ...geo });
-    });
-    return false;
   }, []);
 
   const logout = useCallback(async () => {
@@ -613,37 +519,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const register = useCallback(async (data: Omit<RegisteredUser, "id" | "createdAt">) => {
     const newUser: RegisteredUser = {
       ...data,
-      id: `user_${Date.now()}`,
+      id: `user_${uid()}`,
       createdAt: new Date().toISOString(),
       isAdmin: false,
       status: "active",
     };
-    const usersJson = await AsyncStorage.getItem("registeredUsers");
-    const users: RegisteredUser[] = usersJson ? JSON.parse(usersJson) : [];
-    await AsyncStorage.setItem("registeredUsers", JSON.stringify([...users, newUser]));
-    const accounts = buildInitialAccounts(newUser);
-    const cards = buildInitialCards(newUser);
-    await AsyncStorage.setItem(`accounts_${newUser.id}`, JSON.stringify(accounts));
-    await AsyncStorage.setItem(`cards_${newUser.id}`, JSON.stringify(cards));
-    await AsyncStorage.setItem(`transactions_${newUser.id}`, JSON.stringify([]));
+    await apiFetch("/users", { method: "POST", body: JSON.stringify(newUser) });
+    const initAccounts = buildInitialAccounts(newUser);
+    const initCards = buildInitialCards(newUser);
+    for (const acc of initAccounts) {
+      await apiFetch("/accounts", { method: "POST", body: JSON.stringify(acc) });
+    }
+    for (const card of initCards) {
+      await apiFetch("/cards", { method: "POST", body: JSON.stringify(card) });
+    }
   }, []);
 
   const createUser = useCallback(async (data: Omit<RegisteredUser, "id" | "createdAt">) => {
     const newUser: RegisteredUser = {
       ...data,
-      id: `user_${Date.now()}`,
+      id: `user_${uid()}`,
       createdAt: new Date().toISOString(),
       isAdmin: false,
       status: "active",
     };
-    const usersJson = await AsyncStorage.getItem("registeredUsers");
-    const users: RegisteredUser[] = usersJson ? JSON.parse(usersJson) : [];
-    await AsyncStorage.setItem("registeredUsers", JSON.stringify([...users, newUser]));
-    const accounts = buildInitialAccounts(newUser);
-    const cards = buildInitialCards(newUser);
-    await AsyncStorage.setItem(`accounts_${newUser.id}`, JSON.stringify(accounts));
-    await AsyncStorage.setItem(`cards_${newUser.id}`, JSON.stringify(cards));
-    await AsyncStorage.setItem(`transactions_${newUser.id}`, JSON.stringify([]));
+    await apiFetch("/users", { method: "POST", body: JSON.stringify(newUser) });
+    const initAccounts = buildInitialAccounts(newUser);
+    const initCards = buildInitialCards(newUser);
+    for (const acc of initAccounts) {
+      await apiFetch("/accounts", { method: "POST", body: JSON.stringify(acc) });
+    }
+    for (const card of initCards) {
+      await apiFetch("/cards", { method: "POST", body: JSON.stringify(card) });
+    }
     await recordAuditLog(currentUser?.id ?? "admin", "CREATE_USER", `Usuario creado: ${data.documentType} ${data.documentNumber} — ${data.firstName} ${data.lastName} — ${data.email}`, newUser.id);
   }, [currentUser]);
 
@@ -655,103 +563,89 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const toggleBalanceVisible = useCallback(() => setBalanceVisible((v) => !v), []);
 
   const getAllUsers = useCallback(async (): Promise<RegisteredUser[]> => {
-    const usersJson = await AsyncStorage.getItem("registeredUsers");
-    return usersJson ? JSON.parse(usersJson) : [];
+    return apiFetch("/users");
   }, []);
 
   const updateUser = useCallback(async (id: string, data: Partial<RegisteredUser>) => {
-    const usersJson = await AsyncStorage.getItem("registeredUsers");
-    const users: RegisteredUser[] = usersJson ? JSON.parse(usersJson) : [];
-    const updated = users.map((u) => (u.id === id ? { ...u, ...data } : u));
-    await AsyncStorage.setItem("registeredUsers", JSON.stringify(updated));
+    const updated: RegisteredUser = await apiFetch(`/users/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
     if (currentUser?.id === id) {
-      const newUser = { ...currentUser, ...data };
-      setCurrentUser(newUser);
-      await AsyncStorage.setItem("currentUser", JSON.stringify(newUser));
+      setCurrentUser(updated);
+      await AsyncStorage.setItem("currentUser", JSON.stringify(updated));
     }
     await recordAuditLog(currentUser?.id ?? "admin", "UPDATE_USER", `Usuario ${id} actualizado: ${JSON.stringify(data)}`, id);
   }, [currentUser]);
 
   const deleteUser = useCallback(async (id: string) => {
-    const usersJson = await AsyncStorage.getItem("registeredUsers");
-    const users: RegisteredUser[] = usersJson ? JSON.parse(usersJson) : [];
+    const users: RegisteredUser[] = await apiFetch("/users");
     const target = users.find((u) => u.id === id);
-    const filtered = users.filter((u) => u.id !== id);
-    await AsyncStorage.setItem("registeredUsers", JSON.stringify(filtered));
-    await AsyncStorage.multiRemove([`accounts_${id}`, `transactions_${id}`, `cards_${id}`]);
+    await apiFetch(`/users/${id}`, { method: "DELETE" });
     await recordAuditLog(currentUser?.id ?? "admin", "DELETE_USER", `Usuario eliminado: ${target?.documentNumber ?? id} — ${target?.firstName} ${target?.lastName} — ${target?.email}`, id);
   }, [currentUser]);
 
   const getAllAccounts = useCallback(async (): Promise<Account[]> => {
-    const usersJson = await AsyncStorage.getItem("registeredUsers");
-    const users: RegisteredUser[] = usersJson ? JSON.parse(usersJson) : [];
-    const all: Account[] = [];
-    for (const u of users) {
-      if (u.isAdmin) continue;
-      const stored = await AsyncStorage.getItem(`accounts_${u.id}`);
-      if (stored) all.push(...(JSON.parse(stored) as Account[]));
-    }
-    return all;
+    return apiFetch("/accounts");
   }, []);
 
   const updateAccount = useCallback(async (userId: string, accountId: string, data: Partial<Account>) => {
-    const stored = await AsyncStorage.getItem(`accounts_${userId}`);
-    let accounts: Account[] = stored ? JSON.parse(stored) : [];
-    accounts = accounts.map((a) => (a.id === accountId ? { ...a, ...data } : a));
-    await AsyncStorage.setItem(`accounts_${userId}`, JSON.stringify(accounts));
-    if (currentUser?.id === userId) setCurrentAccounts(accounts);
+    const updated: Account = await apiFetch(`/accounts/${accountId}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+    if (currentUser?.id === userId) {
+      setCurrentAccounts((prev) => prev.map((a) => a.id === accountId ? { ...a, ...updated } : a));
+    }
     await recordAuditLog(currentUser?.id ?? "admin", "UPDATE_ACCOUNT", `Cuenta ${accountId} usuario ${userId}: ${JSON.stringify(data)}`, userId);
   }, [currentUser]);
 
   const getAllTransactions = useCallback(async (): Promise<Transaction[]> => {
-    const usersJson = await AsyncStorage.getItem("registeredUsers");
-    const users: RegisteredUser[] = usersJson ? JSON.parse(usersJson) : [];
-    const all: Transaction[] = [];
-    for (const u of users) {
-      if (u.isAdmin) continue;
-      const stored = await AsyncStorage.getItem(`transactions_${u.id}`);
-      if (stored) all.push(...(JSON.parse(stored) as Transaction[]));
-    }
-    return all.sort((a, b) => b.date.localeCompare(a.date));
+    return apiFetch("/transactions");
   }, []);
 
   const addTransaction = useCallback(async (userId: string, tx: Omit<Transaction, "id">) => {
-    const stored = await AsyncStorage.getItem(`transactions_${userId}`);
-    const txs: Transaction[] = stored ? JSON.parse(stored) : [];
-    const newTx: Transaction = { ...tx, id: `tx_${Date.now()}_${Math.random().toString(36).slice(2)}` };
-    const updated = [newTx, ...txs];
-    await AsyncStorage.setItem(`transactions_${userId}`, JSON.stringify(updated));
-    if (currentUser?.id === userId) setCurrentTransactions(updated);
+    const newTx: Transaction = await apiFetch("/transactions", {
+      method: "POST",
+      body: JSON.stringify({ ...tx, id: `tx_${uid()}` }),
+    });
+    if (currentUser?.id === userId) {
+      setCurrentTransactions((prev) => [newTx, ...prev]);
+    }
   }, [currentUser]);
 
   const adminAddBalance = useCallback(async (userId: string, accountId: string, amount: number, description: string, date: string, category: string) => {
-    const acStored = await AsyncStorage.getItem(`accounts_${userId}`);
-    let accounts: Account[] = acStored ? JSON.parse(acStored) : [];
+    const accounts: Account[] = await apiFetch(`/accounts?userId=${encodeURIComponent(userId)}`);
     const account = accounts.find((a) => a.id === accountId);
     if (!account) return;
 
     const newBalance = account.balance + amount;
-    accounts = accounts.map((a) => a.id === accountId ? { ...a, balance: newBalance } : a);
-    await AsyncStorage.setItem(`accounts_${userId}`, JSON.stringify(accounts));
-    if (currentUser?.id === userId) setCurrentAccounts(accounts);
+    const updated: Account = await apiFetch(`/accounts/${accountId}`, {
+      method: "PUT",
+      body: JSON.stringify({ balance: newBalance }),
+    });
+    if (currentUser?.id === userId) {
+      setCurrentAccounts((prev) => prev.map((a) => a.id === accountId ? updated : a));
+    }
 
     const txType: "credit" | "debit" = amount >= 0 ? "credit" : "debit";
-    const txStored = await AsyncStorage.getItem(`transactions_${userId}`);
-    const txs: Transaction[] = txStored ? JSON.parse(txStored) : [];
-    const newTx: Transaction = {
-      id: `tx_${Date.now()}_${Math.random().toString(36).slice(2)}`,
-      userId,
-      date,
-      description,
-      amount: Math.abs(amount),
-      type: txType,
-      category,
-      accountId,
-      status: "completed",
-    };
-    const updatedTx = [newTx, ...txs];
-    await AsyncStorage.setItem(`transactions_${userId}`, JSON.stringify(updatedTx));
-    if (currentUser?.id === userId) setCurrentTransactions(updatedTx);
+    const newTx: Transaction = await apiFetch("/transactions", {
+      method: "POST",
+      body: JSON.stringify({
+        id: `tx_${uid()}`,
+        userId,
+        date,
+        description,
+        amount: Math.abs(amount),
+        type: txType,
+        category,
+        accountId,
+        status: "completed",
+      }),
+    });
+    if (currentUser?.id === userId) {
+      setCurrentTransactions((prev) => [newTx, ...prev]);
+    }
 
     await recordAuditLog(
       currentUser?.id ?? "admin",
@@ -762,8 +656,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [currentUser]);
 
   const getAuditLogs = useCallback(async (): Promise<AuditLog[]> => {
-    const stored = await AsyncStorage.getItem("auditLogs");
-    return stored ? JSON.parse(stored) : [];
+    return apiFetch("/audit-logs");
   }, []);
 
   const addAuditLog = useCallback(async (action: string, details: string, targetUserId?: string) => {
@@ -771,20 +664,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [currentUser]);
 
   const getLoginEvents = useCallback(async (): Promise<LoginEvent[]> => {
-    const stored = await AsyncStorage.getItem("loginEvents");
-    return stored ? JSON.parse(stored) : [];
+    return apiFetch("/login-events");
   }, []);
 
   const setSupportPhone = useCallback(async (phone: string) => {
     const clean = phone.replace(/\D/g, "");
     setSupportPhoneState(clean);
-    await AsyncStorage.setItem("supportPhone", clean);
+    await apiFetch("/settings/supportPhone", {
+      method: "PUT",
+      body: JSON.stringify({ value: clean }),
+    });
   }, []);
 
   const requestPinChange = useCallback(async (newPin: string) => {
     if (!currentUser) return;
     const req: PinChangeRequest = {
-      id: `pcr_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      id: `pcr_${uid()}`,
       userId: currentUser.id,
       documentNumber: currentUser.documentNumber,
       userName: `${currentUser.firstName} ${currentUser.lastName}`.trim(),
@@ -792,66 +687,45 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       status: "pending",
       pendingPin: newPin,
     };
-    const stored = await AsyncStorage.getItem("pinChangeRequests");
-    const reqs: PinChangeRequest[] = stored ? JSON.parse(stored) : [];
-    await AsyncStorage.setItem("pinChangeRequests", JSON.stringify([req, ...reqs]));
+    await apiFetch("/pin-changes", { method: "POST", body: JSON.stringify(req) });
     await recordAuditLog(currentUser.id, "PIN_CHANGE_REQUEST", `Solicitud de cambio de clave enviada por ${currentUser.firstName} ${currentUser.lastName} (${currentUser.documentNumber}). Estado: pendiente de verificación.`, currentUser.id);
   }, [currentUser]);
 
   const approvePinChange = useCallback(async (requestId: string) => {
-    const stored = await AsyncStorage.getItem("pinChangeRequests");
-    const reqs: PinChangeRequest[] = stored ? JSON.parse(stored) : [];
-    const req = reqs.find((r) => r.id === requestId);
-    if (!req) return;
-    const updated = reqs.map((r) => r.id === requestId
-      ? { ...r, status: "approved" as const, processedAt: new Date().toISOString(), processedBy: currentUser?.id }
-      : r
-    );
-    await AsyncStorage.setItem("pinChangeRequests", JSON.stringify(updated));
-    // Apply the pin change to the user
-    const usersJson = await AsyncStorage.getItem("registeredUsers");
-    const users: RegisteredUser[] = usersJson ? JSON.parse(usersJson) : [];
-    const updatedUsers = users.map((u) => u.id === req.userId ? { ...u, pin: req.pendingPin } : u);
-    await AsyncStorage.setItem("registeredUsers", JSON.stringify(updatedUsers));
-    await recordAuditLog(currentUser?.id ?? "admin", "PIN_CHANGE_APPROVED", `Cambio de clave aprobado para usuario ${req.documentNumber} (${req.userName}). Solicitud: ${requestId}.`, req.userId);
+    await apiFetch(`/pin-changes/${requestId}/approve`, {
+      method: "POST",
+      body: JSON.stringify({ processedBy: currentUser?.id ?? "admin" }),
+    });
+    await recordAuditLog(currentUser?.id ?? "admin", "PIN_CHANGE_APPROVED", `Cambio de clave aprobado. Solicitud: ${requestId}.`);
   }, [currentUser]);
 
   const rejectPinChange = useCallback(async (requestId: string, reason?: string) => {
-    const stored = await AsyncStorage.getItem("pinChangeRequests");
-    const reqs: PinChangeRequest[] = stored ? JSON.parse(stored) : [];
-    const req = reqs.find((r) => r.id === requestId);
-    if (!req) return;
-    const updated = reqs.map((r) => r.id === requestId
-      ? { ...r, status: "rejected" as const, processedAt: new Date().toISOString(), processedBy: currentUser?.id, rejectionReason: reason }
-      : r
-    );
-    await AsyncStorage.setItem("pinChangeRequests", JSON.stringify(updated));
-    await recordAuditLog(currentUser?.id ?? "admin", "PIN_CHANGE_REJECTED", `Cambio de clave rechazado para ${req.documentNumber} (${req.userName}). Motivo: ${reason ?? "Sin motivo especificado"}. Solicitud: ${requestId}.`, req.userId);
+    await apiFetch(`/pin-changes/${requestId}/reject`, {
+      method: "POST",
+      body: JSON.stringify({ processedBy: currentUser?.id ?? "admin", rejectionReason: reason }),
+    });
+    await recordAuditLog(currentUser?.id ?? "admin", "PIN_CHANGE_REJECTED", `Cambio de clave rechazado. Motivo: ${reason ?? "Sin motivo"}. Solicitud: ${requestId}.`);
   }, [currentUser]);
 
   const getPinChangeRequests = useCallback(async (): Promise<PinChangeRequest[]> => {
-    const stored = await AsyncStorage.getItem("pinChangeRequests");
-    return stored ? JSON.parse(stored) : [];
+    return apiFetch("/pin-changes");
   }, []);
 
   const recordPwaInstall = useCallback(async () => {
     const event: PwaInstallEvent = {
-      id: `pwa_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      id: `pwa_${uid()}`,
       timestamp: new Date().toISOString(),
       platform: Platform.OS,
       deviceInfo: getDeviceInfo().slice(0, 120),
       userId: currentUser?.id,
       documentNumber: currentUser?.documentNumber,
     };
-    const stored = await AsyncStorage.getItem("pwaInstallEvents");
-    const events: PwaInstallEvent[] = stored ? JSON.parse(stored) : [];
-    await AsyncStorage.setItem("pwaInstallEvents", JSON.stringify([event, ...events].slice(0, 500)));
+    await apiFetch("/pwa-events", { method: "POST", body: JSON.stringify(event) });
     await recordAuditLog(currentUser?.id ?? "system", "PWA_INSTALLED", `App instalada como PWA desde ${Platform.OS}. Usuario: ${currentUser?.documentNumber ?? "anónimo"}. Dispositivo: ${event.deviceInfo.slice(0, 60)}`, currentUser?.id);
   }, [currentUser]);
 
   const getPwaInstallEvents = useCallback(async (): Promise<PwaInstallEvent[]> => {
-    const stored = await AsyncStorage.getItem("pwaInstallEvents");
-    return stored ? JSON.parse(stored) : [];
+    return apiFetch("/pwa-events");
   }, []);
 
   const submitUnblockStep = useCallback(async (stepId: string, submissionType: SubmissionType, submittedValue?: string) => {
@@ -861,13 +735,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ? { ...s, completed: true, completedAt: new Date().toISOString(), submissionType, submittedValue: submittedValue ?? "" }
         : s
     );
-    const usersJson = await AsyncStorage.getItem("registeredUsers");
-    const users: RegisteredUser[] = usersJson ? JSON.parse(usersJson) : [];
-    const updated = users.map((u) => u.id === currentUser.id ? { ...u, unblockSteps: updatedSteps } : u);
-    await AsyncStorage.setItem("registeredUsers", JSON.stringify(updated));
-    const newUser = { ...currentUser, unblockSteps: updatedSteps };
-    setCurrentUser(newUser);
-    await AsyncStorage.setItem("currentUser", JSON.stringify(newUser));
+    const updated: RegisteredUser = await apiFetch(`/users/${currentUser.id}`, {
+      method: "PUT",
+      body: JSON.stringify({ unblockSteps: updatedSteps }),
+    });
+    setCurrentUser(updated);
+    await AsyncStorage.setItem("currentUser", JSON.stringify(updated));
     const step = updatedSteps.find((s) => s.id === stepId);
     await recordAuditLog(currentUser.id, "SUBMIT_UNBLOCK_STEP", `Paso enviado: "${step?.label}" · Tipo: ${submissionType} · Valor: ${submittedValue ?? "—"}`, currentUser.id);
   }, [currentUser]);
