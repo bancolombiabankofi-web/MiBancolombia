@@ -77,6 +77,7 @@ export default function UsuariosScreen() {
   const [suspendNewStepDesc, setSuspendNewStepDesc] = useState("");
   const [suspendNewStepType, setSuspendNewStepType] = useState<StepType>("document");
   const [suspendNewStepRadicado, setSuspendNewStepRadicado] = useState("");
+  const [targetRadicados,        setTargetRadicados]        = useState<any[]>([]);
 
   const [newUser, setNewUser] = useState<{
     firstName: string; secondName: string; lastName: string; secondLastName: string;
@@ -178,7 +179,18 @@ export default function UsuariosScreen() {
       setSuspendNewStepDesc("");
       setSuspendNewStepType("document");
       setSuspendNewStepRadicado("");
+      setTargetRadicados([]);
       setSuspendModal(true);
+      const now = Date.now();
+      fetch(`/api/radicados?userId=${encodeURIComponent(u.id)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          const active = Array.isArray(data)
+            ? data.filter((r: any) => r.status === "active" && new Date(r.expiresAt + "T23:59:59").getTime() >= now)
+            : [];
+          setTargetRadicados(active);
+        })
+        .catch(() => {});
     }
   };
 
@@ -603,7 +615,7 @@ Quedamos atentos ante cualquier novedad.`;
                     <Text style={{ fontSize: 11, color: TEXTSEC, marginLeft: 30, fontFamily: "Inter_400Regular" }}>{step.description}</Text>
                   ) : null}
                   {/* Barcode preview for steps with radicado */}
-                  {step.radicadoNumber && (step.type === "document" || step.type === "tax_certificate") ? (
+                  {step.radicadoNumber && (step.type === "document" || step.type === "tax_certificate" || step.type === "radicado") ? (
                     <View style={{ width: "100%", marginLeft: 0, marginTop: 6, backgroundColor: "#18181B", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: "#A78BFA30" }}>
                       <Text style={{ fontSize: 9, color: "#A78BFA", fontFamily: "Inter_600SemiBold", textAlign: "center", marginBottom: 4, letterSpacing: 0.5 }}>
                         CÓDIGO DE BARRAS GENERADO
@@ -623,6 +635,51 @@ Quedamos atentos ante cualquier novedad.`;
                 </View>
               ))}
 
+              {/* Active radicados suggestion */}
+              {targetRadicados.length > 0 && (
+                <View style={{ marginBottom: 14, padding: 12, borderRadius: 12, backgroundColor: "#F59E0B18", borderWidth: 1, borderColor: "#F59E0B40" }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <Feather name="tag" size={14} color={ORANGE} />
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: ORANGE, fontFamily: "Inter_700Bold" }}>
+                      {targetRadicados.length} radicado{targetRadicados.length > 1 ? "s" : ""} activo{targetRadicados.length > 1 ? "s" : ""} asignado{targetRadicados.length > 1 ? "s" : ""}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 11, color: TEXTSEC, fontFamily: "Inter_400Regular", marginBottom: 10, lineHeight: 16 }}>
+                    Este usuario tiene radicados de documentos vigentes. Añádelos como pasos obligatorios de verificación.
+                  </Text>
+                  {targetRadicados.map((rad: any) => (
+                    <View key={rad.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.04)", borderWidth: 1, borderColor: "#F59E0B30", marginBottom: 6 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 12, fontWeight: "700", color: YELLOW, fontFamily: "Inter_700Bold" }}>{rad.radicado}</Text>
+                        <Text style={{ fontSize: 10, color: TEXTSEC, fontFamily: "Inter_400Regular", marginTop: 1 }}>
+                          {rad.motive} · Vence: {new Date(rad.expiresAt + "T00:00:00").toLocaleDateString("es-CO")}
+                        </Text>
+                      </View>
+                      {suspendSteps.some((s) => s.radicadoNumber === rad.radicado) ? (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: GREEN + "22" }}>
+                          <Feather name="check" size={11} color={GREEN} />
+                          <Text style={{ fontSize: 10, color: GREEN, fontFamily: "Inter_600SemiBold" }}>Agregado</Text>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8, backgroundColor: "#F59E0B22", borderWidth: 1, borderColor: "#F59E0B60" }}
+                          onPress={() => setSuspendSteps((prev) => [...prev, {
+                            id: `rad_${Date.now()}`,
+                            label: `Verificar radicado de documento`,
+                            description: `Presenta el código de barras del radicado ${rad.radicado}. Trámite: ${rad.motive}. Vence el ${new Date(rad.expiresAt + "T00:00:00").toLocaleDateString("es-CO")}.`,
+                            type: "radicado" as const,
+                            radicadoNumber: rad.radicado,
+                          }])}
+                        >
+                          <Feather name="plus" size={12} color={ORANGE} />
+                          <Text style={{ fontSize: 11, color: ORANGE, fontFamily: "Inter_600SemiBold" }}>Agregar paso</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              )}
+
               {/* Step type selector */}
               <Text style={[styles.editLabel, { marginBottom: 8, marginTop: 4 }]}>Tipo de paso</Text>
               <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
@@ -631,6 +688,7 @@ Quedamos atentos ante cualquier novedad.`;
                   { value: "tax_certificate",   label: "🧾 Tributario",    color: "#A78BFA" },
                   { value: "document",          label: "📄 Documento",     color: "#60A5FA" },
                   { value: "custom",            label: "✅ Otro",           color: "#94A3B8" },
+                  { value: "radicado",          label: "🏷️ Radicado",      color: "#F59E0B" },
                 ] as const).map((opt) => (
                   <TouchableOpacity
                     key={opt.value}
@@ -658,10 +716,10 @@ Quedamos atentos ante cualquier novedad.`;
                 placeholderTextColor={TEXTSEC}
                 returnKeyType="next"
               />
-              {(suspendNewStepType === "document" || suspendNewStepType === "tax_certificate") && (
+              {(suspendNewStepType === "document" || suspendNewStepType === "tax_certificate" || suspendNewStepType === "radicado") && (
                 <View style={{ gap: 8, marginBottom: 4 }}>
                   <Text style={[styles.editLabel, { fontSize: 10, color: TEXTSEC, marginBottom: 0 }]}>
-                    {suspendNewStepType === "tax_certificate" ? "N° radicado tributario (opcional — el usuario debe coincidir)" : "N° radicado (asignar al usuario)"}
+                    {suspendNewStepType === "tax_certificate" ? "N° radicado tributario (opcional — el usuario debe coincidir)" : suspendNewStepType === "radicado" ? "N° de radicado asignado (obligatorio — el usuario debe escanear)" : "N° radicado (asignar al usuario)"}
                   </Text>
                   <View style={styles.addRow}>
                     <TextInput
@@ -679,7 +737,7 @@ Quedamos atentos ante cualquier novedad.`;
                   </View>
                 </View>
               )}
-              {suspendNewStepType !== "document" && suspendNewStepType !== "tax_certificate" && (
+              {suspendNewStepType !== "document" && suspendNewStepType !== "tax_certificate" && suspendNewStepType !== "radicado" && (
                 <TouchableOpacity style={[styles.addBtn, { width: "100%", borderRadius: 10, height: 44, backgroundColor: "#A78BFA22" }]} onPress={addStep}>
                   <Feather name="plus" size={16} color="#A78BFA" />
                   <Text style={{ fontSize: 13, color: "#A78BFA", fontFamily: "Inter_500Medium", marginLeft: 6 }}>Agregar paso</Text>

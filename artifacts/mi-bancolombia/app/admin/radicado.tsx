@@ -234,19 +234,23 @@ export default function RadicadoScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
+    let allUsers: RegisteredUser[] = [];
+    let radList: Radicado[] = [];
     try {
-      const [allUsers, res] = await Promise.all([
-        getAllUsers(),
-        fetch("/api/radicados").then((r) => r.json()),
-      ]);
-      setUsers(allUsers.filter((u) => !u.isAdmin));
-      setRadicados(Array.isArray(res) ? res : []);
-    } catch (e) {
-      console.warn("Error loading radicados", e);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      allUsers = await getAllUsers();
+    } catch {
+      /* keep empty, don't block UI */
     }
+    try {
+      const res = await fetch("/api/radicados").then((r) => r.json());
+      radList = Array.isArray(res) ? res : [];
+    } catch {
+      /* keep empty */
+    }
+    setUsers(allUsers.filter((u) => !u.isAdmin));
+    setRadicados(radList);
+    setLoading(false);
+    setRefreshing(false);
   }, [getAllUsers]);
 
   useEffect(() => { loadData(); }, [loadData]);

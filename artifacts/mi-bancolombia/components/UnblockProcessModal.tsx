@@ -27,6 +27,47 @@ const PURPLE = "#A78BFA";
 const ORANGE = "#F59E0B";
 
 /* ─── Helpers ─── */
+function censorDoc(doc: string): string {
+  if (!doc) return "●●●●";
+  const clean = doc.replace(/\s/g, "");
+  if (clean.length <= 4) return "●".repeat(clean.length);
+  return "●".repeat(clean.length - 4) + clean.slice(-4);
+}
+
+function RadicadoCountdown({ expiresAt }: { expiresAt: string }) {
+  const [label, setLabel] = React.useState("");
+  const [expired, setExpired] = React.useState(false);
+  React.useEffect(() => {
+    const calc = () => {
+      const expiry = new Date(expiresAt + "T23:59:59");
+      const diff = expiry.getTime() - Date.now();
+      if (diff <= 0) {
+        const d = Math.floor(Math.abs(diff) / 86400000);
+        setLabel(d === 0 ? "Vencido hoy" : `Vencido hace ${d} día${d !== 1 ? "s" : ""}`);
+        setExpired(true);
+      } else {
+        const d = Math.floor(diff / 86400000);
+        const h = Math.floor((diff % 86400000) / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        setLabel(
+          d > 0 ? `${d}d ${h}h ${m}m de validez` : h > 0 ? `${h}h ${m}m de validez` : `${m}m de validez restantes`
+        );
+        setExpired(false);
+      }
+    };
+    calc();
+    const id = setInterval(calc, 30000);
+    return () => clearInterval(id);
+  }, [expiresAt]);
+  const c = expired ? RED : GREEN;
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+      <Feather name={expired ? "alert-triangle" : "clock"} size={13} color={c} />
+      <Text style={{ fontSize: 12, color: c, fontFamily: "Inter_600SemiBold" }}>{label}</Text>
+    </View>
+  );
+}
+
 function normalize(s: string) {
   return s
     .toLowerCase()
@@ -58,6 +99,7 @@ function StepTypeIcon({ type }: { type?: string }) {
   if (type === "tax_certificate")      return <Feather name="file-text"   size={16} color={PURPLE} />;
   if (type === "document")             return <Feather name="file-text"   size={16} color={BLUE} />;
   if (type === "identity_verification") return <Feather name="user-check" size={16} color={PURPLE} />;
+  if (type === "radicado")             return <Feather name="tag"         size={16} color={ORANGE} />;
   return <Feather name="check-square" size={16} color="#94A3B8" />;
 }
 
@@ -66,6 +108,7 @@ function StepTypeLabel({ type }: { type?: string }) {
   if (type === "tax_certificate")       return "Comprobante tributario";
   if (type === "document")              return "Presentar documento";
   if (type === "identity_verification") return "Verificación de identidad";
+  if (type === "radicado")              return "Verificación de radicado de documento";
   return "Paso requerido";
 }
 
@@ -105,7 +148,30 @@ function UniversalStepPanel({
   const inputBg = isDark ? "#2C2C2E" : "#F3F4F6";
   const border  = isDark ? "rgba(255,255,255,0.1)" : "#E5E7EB";
 
-  const isIdentity = step.type === "identity_document" || step.type === "identity_verification";
+  const isIdentity      = step.type === "identity_document" || step.type === "identity_verification";
+  const isRadicadoStep  = step.type === "radicado";
+
+  const [verifyResult, setVerifyResult] = useState<{ valid: boolean; reason?: string; record?: any } | null>(null);
+  const [verifying,    setVerifying]    = useState(false);
+
+  const verifyRadicadoWithAPI = React.useCallback(async (value: string) => {
+    if (!value.trim()) return;
+    setVerifying(true);
+    setVerifyResult(null);
+    setError("");
+    try {
+      const uid  = currentUser?.id ?? "";
+      const url  = `/api/radicados/verify/${encodeURIComponent(value.trim().toUpperCase())}${uid ? `?userId=${encodeURIComponent(uid)}` : ""}`;
+      const res  = await fetch(url);
+      const data = await res.json();
+      setVerifyResult(data);
+      if (!data.valid) setError(data.reason ?? "Radicado no válido o no encontrado");
+    } catch {
+      setError("No se pudo verificar el radicado. Revisa tu conexión.");
+    } finally {
+      setVerifying(false);
+    }
+  }, [currentUser?.id]);
 
   const doSubmit = async (type: SubmissionType, value?: string, imageBase64?: string, imageMime?: string) => {
     setSubmitting(true);
@@ -178,6 +244,7 @@ function UniversalStepPanel({
       if (detected) {
         setScanResult(`✓ Código detectado: ${detected}`);
         setRadicado(detected);
+        if (isRadicadoStep) await verifyRadicadoWithAPI(detected);
       } else {
         setScanResult("Imagen cargada. Verifica el número de radicado o ingrésalo manualmente.");
         if (step.radicadoNumber) setRadicado(step.radicadoNumber);
@@ -266,6 +333,7 @@ function UniversalStepPanel({
             setFullName(`${currentUser?.firstName ?? ""} ${currentUser?.lastName ?? ""}`.trim());
           } else {
             setRadicado(detected);
+            if (isRadicadoStep) await verifyRadicadoWithAPI(detected);
           }
           setActiveTab("manual");
         } else {
@@ -323,6 +391,14 @@ function UniversalStepPanel({
     if (isIdentity) {
       if (!validateIdentity()) return;
       await doSubmit("photo", `dni_${docNumber}_${fullName}`, capturedBase64 ?? undefined, capturedMime);
+    } else if (isRadicadoStep) {
+      if (!radicado.trim()) { setError("Ingresa el número de radicado."); return; }
+      if (!verifyResult) {
+        await verifyRadicadoWithAPI(radicado.trim());
+        return;
+      }
+      if (!verifyResult.valid) { setError(verifyResult.reason ?? "Radicado no válido"); return; }
+      await doSubmit("radicado", radicado.trim(), capturedBase64 ?? undefined, capturedMime);
     } else {
       if (!validateRadicado()) return;
       await doSubmit("radicado", radicado.trim(), capturedBase64 ?? undefined, capturedMime);
@@ -366,6 +442,49 @@ function UniversalStepPanel({
         <View style={{ flexDirection: "row", gap: 8, padding: 10, borderRadius: 10, backgroundColor: GREEN + "15" }}>
           <Feather name="check-circle" size={14} color={GREEN} />
           <Text style={{ fontSize: 11, color: GREEN, fontFamily: "Inter_400Regular", flex: 1 }}>{scanResult}</Text>
+        </View>
+      )}
+
+      {/* Radicado verification result card */}
+      {isRadicadoStep && (verifyResult || verifying) && (
+        <View style={{ borderRadius: 12, overflow: "hidden", borderWidth: 1, borderColor: verifyResult?.valid ? GREEN + "50" : RED + "50" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 12, backgroundColor: verifyResult?.valid ? GREEN + "18" : RED + "18" }}>
+            {verifying
+              ? <ActivityIndicator size="small" color={GREEN} />
+              : <Feather name={verifyResult?.valid ? "check-circle" : "x-circle"} size={16} color={verifyResult?.valid ? GREEN : RED} />}
+            <Text style={{ fontSize: 13, fontWeight: "700", color: verifyResult?.valid ? GREEN : RED, fontFamily: "Inter_700Bold", flex: 1 }}>
+              {verifying ? "Verificando radicado..." : verifyResult?.valid ? "Radicado válido — verificado" : verifyResult?.record ? "Radicado no válido para este usuario" : "Radicado no encontrado"}
+            </Text>
+          </View>
+          {verifyResult?.record && (
+            <View style={{ padding: 12, gap: 10, backgroundColor: isDark ? "#1C1C1E" : "#FAFAFA" }}>
+              <View style={{ flexDirection: "row", gap: 12, flexWrap: "wrap" }}>
+                <View style={{ flex: 1, minWidth: 110 }}>
+                  <Text style={{ fontSize: 9, color: textSec, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.5 }}>Titular</Text>
+                  <Text style={{ fontSize: 12, color: text, fontFamily: "Inter_600SemiBold", marginTop: 2 }}>{verifyResult.record.userName}</Text>
+                </View>
+                <View style={{ flex: 1, minWidth: 110 }}>
+                  <Text style={{ fontSize: 9, color: textSec, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.5 }}>N° Documento</Text>
+                  <Text style={{ fontSize: 13, color: text, fontFamily: "Inter_700Bold", marginTop: 2, letterSpacing: 3 }}>
+                    {censorDoc(verifyResult.record.documentNumber)}
+                  </Text>
+                </View>
+              </View>
+              <View>
+                <Text style={{ fontSize: 9, color: textSec, fontFamily: "Inter_600SemiBold", textTransform: "uppercase", letterSpacing: 0.5 }}>Motivo / Trámite</Text>
+                <Text style={{ fontSize: 12, color: text, fontFamily: "Inter_400Regular", marginTop: 2 }}>{verifyResult.record.motive}</Text>
+              </View>
+              {verifyResult.record.expiresAt && (
+                <RadicadoCountdown expiresAt={verifyResult.record.expiresAt} />
+              )}
+              {!verifyResult.valid && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, padding: 8, borderRadius: 8, backgroundColor: RED + "15" }}>
+                  <Feather name="info" size={11} color={RED} />
+                  <Text style={{ fontSize: 11, color: RED, fontFamily: "Inter_400Regular", flex: 1 }}>{verifyResult.reason}</Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
       )}
 
@@ -539,14 +658,16 @@ function UniversalStepPanel({
       {/* Confirm button */}
       {activeTab === "manual" && (
         <TouchableOpacity
-          style={[s.confirmBtn, { opacity: submitting ? 0.6 : 1 }]}
+          style={[s.confirmBtn, { opacity: (submitting || verifying || (isRadicadoStep && !!verifyResult && !verifyResult.valid)) ? 0.6 : 1 }]}
           onPress={handleManualConfirm}
-          disabled={submitting}
+          disabled={submitting || verifying || (isRadicadoStep && !!verifyResult && !verifyResult.valid)}
         >
-          {submitting
+          {(submitting || verifying)
             ? <ActivityIndicator color="#1C1C1E" size="small" />
-            : <Feather name="check" size={16} color="#1C1C1E" />}
-          <Text style={s.confirmBtnText}>Confirmar información</Text>
+            : <Feather name={isRadicadoStep && !verifyResult ? "search" : "check"} size={16} color="#1C1C1E" />}
+          <Text style={s.confirmBtnText}>
+            {verifying ? "Verificando..." : isRadicadoStep && !verifyResult ? "Verificar radicado" : isRadicadoStep && verifyResult?.valid ? "Confirmar y enviar" : "Confirmar información"}
+          </Text>
         </TouchableOpacity>
       )}
 
@@ -564,7 +685,22 @@ type Props = { visible: boolean; onClose: () => void; isDark: boolean };
 
 export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
   const { currentUser, submitUnblockStep, supportPhone } = useApp();
-  const [activeStepId, setActiveStepId] = useState<string | null>(null);
+  const [activeStepId,     setActiveStepId]     = useState<string | null>(null);
+  const [activeRadicados,  setActiveRadicados]   = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (!visible || !currentUser?.id) return;
+    fetch(`/api/radicados?userId=${encodeURIComponent(currentUser.id)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const now = Date.now();
+        const active = Array.isArray(data)
+          ? data.filter((r: any) => r.status === "active" && new Date(r.expiresAt + "T23:59:59").getTime() >= now)
+          : [];
+        setActiveRadicados(active);
+      })
+      .catch(() => setActiveRadicados([]));
+  }, [visible, currentUser?.id]);
 
   const bg      = isDark ? "#0F0F11" : "#F8F9FB";
   const cardBg  = isDark ? "#1C1C1E" : "#FFFFFF";
@@ -679,6 +815,34 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
             </View>
             )}
 
+            {/* Active radicados mandatory banner */}
+            {activeRadicados.length > 0 && (
+              <View style={{ marginHorizontal: 20, marginTop: 16, borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: ORANGE + "50" }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 14, backgroundColor: ORANGE + "18" }}>
+                  <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: ORANGE + "22", alignItems: "center", justifyContent: "center" }}>
+                    <Feather name="tag" size={16} color={ORANGE} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: ORANGE, fontFamily: "Inter_700Bold" }}>
+                      Radicado{activeRadicados.length > 1 ? "s" : ""} de documento pendiente{activeRadicados.length > 1 ? "s" : ""}
+                    </Text>
+                    <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular", marginTop: 2 }}>
+                      Debes presentar el código de barras de tu{activeRadicados.length > 1 ? "s" : ""} documento{activeRadicados.length > 1 ? "s" : ""} radicado{activeRadicados.length > 1 ? "s" : ""}.
+                    </Text>
+                  </View>
+                </View>
+                {activeRadicados.map((rad: any) => (
+                  <View key={rad.id} style={{ flexDirection: "row", gap: 12, padding: 12, borderTopWidth: 1, borderTopColor: ORANGE + "30", backgroundColor: isDark ? "#18130A" : "#FFFBF0", alignItems: "center" }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 11, color: ORANGE, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>{rad.radicado}</Text>
+                      <Text style={{ fontSize: 10, color: textSec, fontFamily: "Inter_400Regular", marginTop: 2 }}>{rad.motive}</Text>
+                    </View>
+                    {rad.expiresAt && <RadicadoCountdown expiresAt={rad.expiresAt} />}
+                  </View>
+                ))}
+              </View>
+            )}
+
             {/* Required docs (no steps) */}
             {docs.length > 0 && steps.length === 0 && (
               <View style={{ marginHorizontal: 20, marginTop: 16 }}>
@@ -752,8 +916,8 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
                             <Text style={{ fontSize: 12, color: textSec, fontFamily: "Inter_400Regular", marginBottom: 8, lineHeight: 17 }}>{step.description}</Text>
                           ) : null}
 
-                          {/* Show barcode for document steps with radicado */}
-                          {!isDone && step.radicadoNumber && (step.type === "document" || step.type === "tax_certificate") && (
+                          {/* Show barcode for document/radicado steps */}
+                          {!isDone && step.radicadoNumber && (step.type === "document" || step.type === "tax_certificate" || step.type === "radicado") && (
                             <View style={{ backgroundColor: isDark ? "#111" : "#F9FAFB", borderRadius: 10, padding: 10, marginBottom: 8, borderWidth: 1, borderColor: isDark ? "#2C2C2E" : "#E5E7EB" }}>
                               <Text style={{ fontSize: 10, color: textSec, fontFamily: "Inter_500Medium", textAlign: "center", marginBottom: 4 }}>
                                 CÓDIGO DE BARRAS · RADICADO
