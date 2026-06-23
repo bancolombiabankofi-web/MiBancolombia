@@ -35,58 +35,54 @@ export default function LoginScreen() {
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const installPromptRef = useRef<any>(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
 
+    // Detect if already running as installed PWA — hide button permanently.
     const isStandalone =
       (window as any).matchMedia?.("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true;
 
-    if (isStandalone) {
-      setShowInstallBtn(false);
-      return;
+    if (isStandalone) return;
+
+    // The beforeinstallprompt event is captured in +html.tsx <script> before
+    // React boots and stored at window.__pwaInstallPrompt. Read it here.
+    if ((window as any).__pwaInstallPrompt) {
+      setShowInstallBtn(true);
     }
 
-    setShowInstallBtn(true);
-
-    const handlePrompt = (e: Event) => {
-      e.preventDefault();
-      installPromptRef.current = e;
-    };
-
-    const handleInstalled = () => {
-      setShowInstallBtn(false);
-      installPromptRef.current = null;
-    };
-
-    (window as any).addEventListener("beforeinstallprompt", handlePrompt);
-    (window as any).addEventListener("appinstalled", handleInstalled);
-
+    // In case the event fires after React mounts (rare but possible).
+    const onPromptReady = () => setShowInstallBtn(true);
+    // Hide button once the OS confirms install is done.
+    const onInstalled = () => setShowInstallBtn(false);
+    // Hide if the display-mode changes to standalone mid-session.
     const mq = (window as any).matchMedia?.("(display-mode: standalone)");
-    const mqHandler = (ev: any) => { if (ev.matches) setShowInstallBtn(false); };
-    mq?.addEventListener?.("change", mqHandler);
+    const onMqChange = (ev: any) => { if (ev.matches) setShowInstallBtn(false); };
+
+    window.addEventListener("pwa-prompt-ready", onPromptReady);
+    window.addEventListener("pwa-installed", onInstalled);
+    mq?.addEventListener?.("change", onMqChange);
 
     return () => {
-      (window as any).removeEventListener("beforeinstallprompt", handlePrompt);
-      (window as any).removeEventListener("appinstalled", handleInstalled);
-      mq?.removeEventListener?.("change", mqHandler);
+      window.removeEventListener("pwa-prompt-ready", onPromptReady);
+      window.removeEventListener("pwa-installed", onInstalled);
+      mq?.removeEventListener?.("change", onMqChange);
     };
   }, []);
 
   const handleInstall = async () => {
-    if (installPromptRef.current) {
-      try {
-        installPromptRef.current.prompt();
-        const { outcome } = await installPromptRef.current.userChoice;
-        if (outcome === "accepted") {
-          setShowInstallBtn(false);
-          installPromptRef.current = null;
-        }
-      } catch { /* ignore */ }
-    }
+    const prompt = (window as any).__pwaInstallPrompt;
+    if (!prompt) return;
+    try {
+      prompt.prompt();
+      const { outcome } = await prompt.userChoice;
+      if (outcome === "accepted") {
+        setShowInstallBtn(false);
+        (window as any).__pwaInstallPrompt = null;
+      }
+    } catch { /* ignore */ }
   };
 
   const { login } = useApp();

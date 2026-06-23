@@ -49,6 +49,28 @@ const PWA_CSS = `
   }
 `;
 
+const PWA_INSTALL_SCRIPT = `
+(function () {
+  // Capture beforeinstallprompt as early as possible — before React mounts.
+  // Stored on window so any component can access it after hydration.
+  window.__pwaInstallPrompt = null;
+  window.__pwaInstalled = false;
+
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    window.__pwaInstallPrompt = e;
+    // Notify any listeners that may have registered after this event fired.
+    window.dispatchEvent(new CustomEvent('pwa-prompt-ready'));
+  });
+
+  window.addEventListener('appinstalled', function () {
+    window.__pwaInstallPrompt = null;
+    window.__pwaInstalled = true;
+    window.dispatchEvent(new CustomEvent('pwa-installed'));
+  });
+})();
+`;
+
 export default function Root({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
@@ -64,6 +86,8 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="theme-color" content="#0F0F0F" />
         <meta name="format-detection" content="telephone=no" />
+        {/* Capture PWA install prompt before React boots */}
+        <script dangerouslySetInnerHTML={{ __html: PWA_INSTALL_SCRIPT }} />
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{ __html: PWA_CSS }} />
       </head>
