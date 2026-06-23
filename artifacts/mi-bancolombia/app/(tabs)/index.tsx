@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Dimensions,
+  Image,
   Linking,
   NativeScrollEvent,
   NativeSyntheticEvent,
@@ -22,9 +23,9 @@ import { formatBalance } from "@/constants/countries";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const YELLOW = "#FDDA24";
-const CARD_W = Math.min(SCREEN_W - 48, 360);
+const CARD_W = Math.min(SCREEN_W - 40, 340);
+const COL_W = SCREEN_W / 4;
 
-/* ── Account type label ── */
 function getAccountTypeLabel(type: string) {
   if (type === "savings") return "Ahorros";
   if (type === "checking") return "Corriente";
@@ -32,88 +33,50 @@ function getAccountTypeLabel(type: string) {
   return type;
 }
 
-/* ── Transacciones principales ── */
 const TX_ACTIONS = [
-  { icon: "bar-chart-2", label: "Ver saldos y\nmovimientos", color: "#3B82F6", tab: 1 },
-  { icon: "send",        label: "Transferir\nplata",         color: "#8B5CF6", tab: 2 },
-  { icon: "credit-card", label: "Pagar tarjetas\ny créditos", color: "#6366F1", tab: 2 },
-  { icon: "file-text",   label: "Pagar\nfacturas",           color: "#EF4444", tab: 2 },
-  { icon: "repeat",      label: "A otro banco\nTransfiya",   color: "#10B981", tab: 2 },
-  { icon: "download",    label: "Recibir\nplata",            color: "#06B6D4", tab: 2 },
-  { icon: "smartphone",  label: "Recargar\ncelular",         color: "#F59E0B", tab: 2 },
-  { icon: "trending-up", label: "Avances y\ndesembolsos",    color: "#10B981", tab: 2 },
+  { icon: "bar-chart-2", label: "Saldos y\nmovimientos", color: "#3B82F6", tab: 1 },
+  { icon: "send",        label: "Transferir\nplata",       color: "#8B5CF6", tab: 2 },
+  { icon: "credit-card", label: "Pagar\ncréditos",         color: "#6366F1", tab: 2 },
+  { icon: "file-text",   label: "Pagar\nfacturas",         color: "#EF4444", tab: 2 },
+  { icon: "repeat",      label: "Transferiya\notro banco", color: "#10B981", tab: 2 },
+  { icon: "download",    label: "Recibir\nplata",          color: "#06B6D4", tab: 2 },
+  { icon: "smartphone",  label: "Recargar\ncelular",       color: "#F59E0B", tab: 2 },
+  { icon: "trending-up", label: "Avances y\ndesembolsos",  color: "#10B981", tab: 2 },
 ];
 
-/* ── Explorar categorías ── */
 const CATEGORIES = [
-  { icon: "target",       label: "Metas",      color: "#AF52DE", bg: "#AF52DE22", tab: 3 },
-  { icon: "home",         label: "Vivienda",   color: "#FF6B35", bg: "#FF6B3522",
+  { icon: "target",          label: "Metas",       color: "#AF52DE", bg: "#AF52DE22", tab: 3 },
+  { icon: "home",            label: "Vivienda",    color: "#FF6B35", bg: "#FF6B3522",
     info: "Tu360 Inmobiliario\n\nEncontramos la vivienda perfecta para ti. Préstamos hipotecarios, leasing y subsidios de vivienda disponibles." },
-  { icon: "shield",       label: "Seguros",    color: "#34C759", bg: "#34C75922",
+  { icon: "shield",          label: "Seguros",     color: "#34C759", bg: "#34C75922",
     info: "Seguros Bancolombia\n\nProtege lo que más importa. Seguros de vida, hogar, vehículo y salud con las mejores condiciones." },
-  { icon: "trending-up",  label: "Inversiones",color: "#007AFF", bg: "#007AFF22",
+  { icon: "trending-up",     label: "Inversiones", color: "#007AFF", bg: "#007AFF22",
     info: "Invierte con Bancolombia\n\nFDAs, CDTs y Fondos de inversión. Haz crecer tu dinero con nuestras opciones de inversión." },
-  { icon: "dollar-sign",  label: "Créditos",   color: "#FDDA24", bg: "#FDDA2422",
+  { icon: "dollar-sign",     label: "Créditos",    color: "#FDDA24", bg: "#FDDA2422",
     info: "Créditos de consumo\n\nLibranza, crédito personal, rotativo y microcrédito. Solicita el tuyo en minutos." },
-  { icon: "more-horizontal", label: "Más",     color: "#8B5CF6", bg: "#8B5CF622", tab: 3 },
+  { icon: "more-horizontal", label: "Más",         color: "#8B5CF6", bg: "#8B5CF622", tab: 3 },
 ];
 
-/* ── SVG Arc decoration (reference design) ── */
+/* ── SVG Arc decoration ── */
 function ColorArc() {
-  const ARC_H = 160;
   return (
     <View
-      style={{ position: "absolute", top: 90, left: 0, right: 0, height: ARC_H, overflow: "hidden" }}
+      style={{ position: "absolute", top: 70, left: 0, right: 0, height: 120, overflow: "hidden" }}
       pointerEvents="none"
     >
-      <Svg width={SCREEN_W} height={ARC_H} viewBox={`0 0 ${SCREEN_W} ${ARC_H}`} fill="none">
-        {/* Left tail accents */}
-        <Path
-          d={`M -10,105 Q 15,95 32,118`}
-          stroke="#00f0ff"
-          strokeWidth="3.2"
-          strokeLinecap="round"
-        />
-        <Path
-          d={`M -15,112 Q 10,102 26,125`}
-          stroke="#905cf5"
-          strokeWidth="3.8"
-          strokeLinecap="round"
-        />
-        {/* Right violet accent */}
-        <Path
-          d={`M ${SCREEN_W * 0.82},40 Q ${SCREEN_W * 0.9},48 ${SCREEN_W},85`}
-          stroke="#905cf5"
-          strokeWidth="4"
-          strokeLinecap="round"
-        />
-        {/* Green arc */}
-        <Path
-          d={`M ${SCREEN_W * 0.42},65 A 120 120 0 0 1 ${SCREEN_W * 0.63},45`}
-          stroke="#00EA90"
-          strokeWidth="5"
-          strokeLinecap="round"
-        />
-        {/* Yellow arc */}
-        <Path
-          d={`M ${SCREEN_W * 0.62},45 A 120 120 0 0 1 ${SCREEN_W * 0.79},55`}
-          stroke="#FED201"
-          strokeWidth="9.5"
-          strokeLinecap="round"
-        />
-        {/* Orange thick arc */}
-        <Path
-          d={`M ${SCREEN_W * 0.78},52 A 100 100 0 0 1 ${SCREEN_W + 5},105`}
-          stroke="#FF7A1A"
-          strokeWidth="11.5"
-          strokeLinecap="round"
-        />
+      <Svg width={SCREEN_W} height={120} viewBox={`0 0 ${SCREEN_W} 120`} fill="none">
+        <Path d={`M -10,95 Q 15,85 30,108`} stroke="#00f0ff" strokeWidth="3" strokeLinecap="round" />
+        <Path d={`M -14,102 Q 10,92 24,115`} stroke="#905cf5" strokeWidth="3.5" strokeLinecap="round" />
+        <Path d={`M ${SCREEN_W * 0.82},35 Q ${SCREEN_W * 0.9},43 ${SCREEN_W + 2},78`} stroke="#905cf5" strokeWidth="4" strokeLinecap="round" />
+        <Path d={`M ${SCREEN_W * 0.42},58 A 110 110 0 0 1 ${SCREEN_W * 0.63},38`} stroke="#00EA90" strokeWidth="5" strokeLinecap="round" />
+        <Path d={`M ${SCREEN_W * 0.62},38 A 110 110 0 0 1 ${SCREEN_W * 0.79},48`} stroke="#FED201" strokeWidth="9" strokeLinecap="round" />
+        <Path d={`M ${SCREEN_W * 0.78},45 A 95 95 0 0 1 ${SCREEN_W + 4},98`} stroke="#FF7A1A" strokeWidth="11" strokeLinecap="round" />
       </Svg>
     </View>
   );
 }
 
-/* ── Clave Dinámica — dark pill with circular SVG progress ── */
+/* ── Clave Dinámica ── */
 function ClaveTimer() {
   const [countdown, setCountdown] = useState(28);
   const [codeVal, setCodeVal] = useState(() => {
@@ -136,7 +99,7 @@ function ClaveTimer() {
     return () => clearInterval(t);
   }, []);
 
-  const R = 14;
+  const R = 13;
   const CIRC = 2 * Math.PI * R;
   const dashOffset = CIRC * (1 - countdown / 30);
 
@@ -146,38 +109,26 @@ function ClaveTimer() {
       onPress={() =>
         Alert.alert(
           "Clave Dinámica",
-          `Tu clave de un solo uso:\n\n${codeVal}\n\nCambia automáticamente cada 30 segundos.\nÚsala cuando te la soliciten para confirmar operaciones.`,
+          `Tu clave activa:\n\n${codeVal}\n\nCambia cada 30 segundos. Úsala para confirmar operaciones.`,
           [{ text: "Entendido" }],
         )
       }
       activeOpacity={0.82}
     >
-      {/* Circular progress with lock */}
       <View style={styles.claveCircleWrap}>
-        <Svg width={36} height={36} style={{ transform: [{ rotate: "-90deg" }] }}>
-          <Circle cx={18} cy={18} r={R} stroke="#1C1C1E" strokeWidth={3} fill="transparent" />
+        <Svg width={32} height={32} style={{ transform: [{ rotate: "-90deg" }] }}>
+          <Circle cx={16} cy={16} r={R} stroke="#2A2A2A" strokeWidth={2.5} fill="transparent" />
           <Circle
-            cx={18}
-            cy={18}
-            r={R}
-            stroke={YELLOW}
-            strokeWidth={3}
-            fill="transparent"
-            strokeDasharray={CIRC}
-            strokeDashoffset={dashOffset}
-            strokeLinecap="round"
+            cx={16} cy={16} r={R}
+            stroke={YELLOW} strokeWidth={2.5} fill="transparent"
+            strokeDasharray={CIRC} strokeDashoffset={dashOffset} strokeLinecap="round"
           />
         </Svg>
-        {/* Lock icon centered */}
-        <View style={styles.lockIconOverlay}>
-          <Svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <Path d="M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z" />
-            <Path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </Svg>
+        <View style={styles.lockOverlay}>
+          <Feather name="lock" size={10} color="#FFFFFF" />
         </View>
       </View>
-
-      <View style={{ flex: 1 }}>
+      <View>
         <Text style={styles.claveLabel}>Clave Dinámica</Text>
         <Text style={styles.claveCode}>{codeVal}</Text>
       </View>
@@ -185,7 +136,7 @@ function ClaveTimer() {
   );
 }
 
-/* ── Account Card Carousel ── */
+/* ── Account Cards ── */
 function AccountsSection({ isDark, C }: { isDark: boolean; C: any }) {
   const { accounts, balanceVisible, toggleBalanceVisible } = useApp();
   const scrollRef = useRef<ScrollView>(null);
@@ -193,24 +144,24 @@ function AccountsSection({ isDark, C }: { isDark: boolean; C: any }) {
 
   const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const idx = Math.round(e.nativeEvent.contentOffset.x / (CARD_W + 12));
-    setActiveIdx(idx);
+    setActiveIdx(Math.max(0, Math.min(idx, accounts.length - 1)));
   };
 
   const cardBg = isDark ? "#212224" : "#FFFFFF";
-  const cardBorder = isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB";
+  const cardBorder = isDark ? "rgba(255,255,255,0.09)" : "#E5E7EB";
 
   return (
-    <View style={{ marginTop: 4, paddingBottom: 4 }}>
-      {/* Header */}
+    <View style={{ marginTop: 4 }}>
       <View style={styles.accountsHeader}>
         <Text style={[styles.accountsTitle, { color: C.text }]}>Tus cuentas</Text>
         <TouchableOpacity
           onPress={toggleBalanceVisible}
-          style={[styles.hideBtn, { backgroundColor: isDark ? "#1A1A1C" : "#F5F5F7" }]}
+          style={[styles.hideBtn, { backgroundColor: isDark ? "#1A1A1C" : "#F0F0F3" }]}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Feather name={balanceVisible ? "eye-off" : "eye"} size={14} color={C.textSecondary} />
+          <Feather name={balanceVisible ? "eye-off" : "eye"} size={13} color={C.textSecondary} />
           <Text style={[styles.hideText, { color: C.textSecondary }]}>
-            {balanceVisible ? "Ocultar saldos" : "Mostrar saldos"}
+            {balanceVisible ? "Ocultar" : "Mostrar"}
           </Text>
         </TouchableOpacity>
       </View>
@@ -224,7 +175,7 @@ function AccountsSection({ isDark, C }: { isDark: boolean; C: any }) {
         snapToInterval={CARD_W + 12}
         snapToAlignment="start"
         onMomentumScrollEnd={handleScroll}
-        contentContainerStyle={{ paddingHorizontal: 24, gap: 12 }}
+        contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}
       >
         {accounts.map((acc) => {
           const typeLabel = getAccountTypeLabel(acc.type);
@@ -232,63 +183,39 @@ function AccountsSection({ isDark, C }: { isDark: boolean; C: any }) {
           return (
             <View
               key={acc.id}
-              style={[
-                styles.card,
-                {
-                  width: CARD_W,
-                  backgroundColor: cardBg,
-                  borderColor: cardBorder,
-                  shadowColor: "#000",
-                  shadowOpacity: isDark ? 0.4 : 0.06,
-                },
-              ]}
+              style={[styles.card, { width: CARD_W, backgroundColor: cardBg, borderColor: cardBorder }]}
             >
-              {/* Card header */}
               <View style={styles.cardHeader}>
                 <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={[styles.cardName, { color: C.text }]} numberOfLines={1}>
-                    {acc.name}
-                  </Text>
-                  <Text style={[styles.cardSub, { color: C.textSecondary }]}>
+                  <Text style={[styles.cardName, { color: C.text }]} numberOfLines={1}>{acc.name}</Text>
+                  <Text style={[styles.cardSub, { color: C.textSecondary }]} numberOfLines={1}>
                     {typeLabel} · {acc.number}
                   </Text>
                 </View>
                 <TouchableOpacity
                   style={[styles.arrowBtn, { backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "#F5F5F7" }]}
-                  onPress={() =>
-                    Alert.alert(
-                      acc.name,
-                      `Número: ${acc.number}\nTipo: ${typeLabel}\nMoneda: ${acc.currency}\nEstado: Activa`,
-                    )
-                  }
+                  onPress={() => Alert.alert(acc.name, `Número: ${acc.number}\nTipo: ${typeLabel}\nMoneda: ${acc.currency}\nEstado: Activa`)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Feather name="chevron-right" size={16} color={C.textSecondary} />
+                  <Feather name="chevron-right" size={15} color={C.textSecondary} />
                 </TouchableOpacity>
               </View>
 
-              {/* Balance */}
-              <View style={{ marginBottom: 18 }}>
+              <View style={{ marginBottom: 14 }}>
                 <Text style={[styles.cardLabel, { color: C.textSecondary }]}>Saldo disponible</Text>
-                <Text
-                  style={[styles.cardBalance, { color: C.balanceText ?? C.text }]}
-                  adjustsFontSizeToFit
-                  numberOfLines={1}
-                >
+                <Text style={[styles.cardBalance, { color: C.balanceText ?? C.text }]} numberOfLines={1} adjustsFontSizeToFit>
                   {balanceVisible ? balanceStr : `${acc.currencySymbol} ••••••`}
                 </Text>
               </View>
 
-              {/* CTA */}
               <TouchableOpacity
                 style={styles.ctaBtn}
                 activeOpacity={0.85}
-                onPress={() =>
-                  Alert.alert(
-                    "Detalles de cuenta",
-                    `Cuenta: ${acc.number}\nTipo: ${typeLabel}\nMoneda: ${acc.currency}\nSaldo: ${balanceStr}`,
-                    [{ text: "Cerrar" }],
-                  )
-                }
+                onPress={() => Alert.alert(
+                  "Detalles de cuenta",
+                  `Cuenta: ${acc.number}\nTipo: ${typeLabel}\nMoneda: ${acc.currency}\nSaldo: ${balanceStr}`,
+                  [{ text: "Cerrar" }],
+                )}
               >
                 <Text style={styles.ctaBtnText}>Conoce más de tu cuenta</Text>
               </TouchableOpacity>
@@ -297,7 +224,6 @@ function AccountsSection({ isDark, C }: { isDark: boolean; C: any }) {
         })}
       </ScrollView>
 
-      {/* Dots */}
       {accounts.length > 1 && (
         <View style={styles.dots}>
           {accounts.map((_, i) => (
@@ -307,7 +233,7 @@ function AccountsSection({ isDark, C }: { isDark: boolean; C: any }) {
                 styles.dotItem,
                 i === activeIdx
                   ? styles.dotActive
-                  : [styles.dotInactive, { backgroundColor: isDark ? "rgba(255,255,255,0.15)" : "#D1D5DB" }],
+                  : [styles.dotInactive, { backgroundColor: isDark ? "rgba(255,255,255,0.18)" : "#D1D5DB" }],
               ]}
             />
           ))}
@@ -323,9 +249,7 @@ export default function HomeScreen() {
   const { C, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const topPad = Platform.OS === "web" ? 60 : insets.top;
-
-  const COL_W = SCREEN_W / 4;
+  const topPad = insets.top || (Platform.OS === "web" ? 20 : 0);
 
   const routes = [
     "/(tabs)/index",
@@ -335,8 +259,26 @@ export default function HomeScreen() {
     "/(tabs)/cards",
   ];
 
+  const handleLogout = () => {
+    Alert.alert(
+      "Cerrar sesión",
+      "¿Seguro que deseas salir de Mi Bancolombia?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Salir",
+          style: "destructive",
+          onPress: () => {
+            logout();
+            router.replace("/login");
+          },
+        },
+      ],
+    );
+  };
+
   const handleTxAction = (action: (typeof TX_ACTIONS)[0]) => {
-    if (action.tab !== undefined) router.push(routes[action.tab] as any);
+    router.push(routes[action.tab] as any);
   };
 
   const handleCategory = (cat: (typeof CATEGORIES)[0]) => {
@@ -350,98 +292,98 @@ export default function HomeScreen() {
     }
   };
 
-  const handleNotifications = () => {
-    Alert.alert(
-      "Notificaciones",
-      "No tienes notificaciones nuevas.\n\nActiva las alertas en Ajustes > Notificaciones para recibir avisos de tus transacciones.",
-      [
-        { text: "Ir a ajustes", onPress: () => router.push("/(tabs)/cards" as any) },
-        { text: "Cerrar", style: "cancel" },
-      ],
-    );
-  };
-
-  const handleHelp = () => {
-    Alert.alert(
-      "Centro de ayuda",
-      "¿Cómo podemos ayudarte?",
-      [
-        { text: "Llamar ahora", onPress: () => Linking.openURL("tel:018000912345").catch(() => {}) },
-        { text: "WhatsApp", onPress: () => Linking.openURL("https://wa.me/573132095988").catch(() => {}) },
-        { text: "Cerrar", style: "cancel" },
-      ],
-    );
-  };
-
-  const handleChat = () => {
-    Alert.alert(
-      "Chat con Bancolombia",
-      "Conéctate con un asesor de Bancolombia para resolver tus dudas.",
-      [
-        { text: "Abrir WhatsApp", onPress: () => Linking.openURL("https://wa.me/573132095988?text=Hola,%20necesito%20ayuda").catch(() => {}) },
-        { text: "Cancelar", style: "cancel" },
-      ],
-    );
-  };
-
   return (
     <View style={[styles.container, { paddingTop: topPad, backgroundColor: C.background }]}>
       {/* ── HEADER ── */}
       <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
-        {/* Logo: wavy SVG lines + "Bancolombia" */}
         <View style={styles.headerLogoRow}>
-          <Svg width={24} height={16} viewBox="0 0 24 16" fill="none">
-            <Path d="M2.5,3 C8.5,1.2 15.5,5.2 21.5,3" stroke={isDark ? "white" : "#1C1C1E"} strokeWidth="2.8" strokeLinecap="round" />
-            <Path d="M2.5,8 C8.5,6.2 15.5,10.2 21.5,8" stroke={YELLOW} strokeWidth="2.8" strokeLinecap="round" />
-            <Path d="M2.5,13 C8.5,11.2 15.5,15.2 21.5,13" stroke={isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.3)"} strokeWidth="1.6" strokeLinecap="round" />
-          </Svg>
-          <Text style={[styles.headerLogoText, { color: C.text }]}>Bancolombia</Text>
+          <Image
+            source={require("../../assets/images/pwa-icon.png")}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+          <Text style={[styles.headerLogoText, { color: C.text }]}>Mi Bancolombia</Text>
         </View>
-
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.headerIcon} onPress={handleNotifications}>
-            <Feather name="bell" size={19} color={C.text} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon} onPress={handleHelp}>
-            <Feather name="help-circle" size={19} color={C.text} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon} onPress={handleChat}>
-            <Feather name="message-circle" size={19} color={C.text} />
+          <TouchableOpacity
+            style={styles.headerIcon}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+            onPress={() =>
+              Alert.alert(
+                "Notificaciones",
+                "No tienes notificaciones nuevas.",
+                [
+                  { text: "Ir a Ajustes", onPress: () => router.push("/(tabs)/cards" as any) },
+                  { text: "Cerrar", style: "cancel" },
+                ],
+              )
+            }
+          >
+            <Feather name="bell" size={18} color={C.text} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerIcon}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
             onPress={() =>
-              Alert.alert("Cerrar sesión", "¿Estás seguro de que deseas salir?", [
-                { text: "Cancelar", style: "cancel" },
-                { text: "Salir", style: "destructive", onPress: logout },
-              ])
+              Alert.alert(
+                "Centro de ayuda",
+                "¿Cómo podemos ayudarte?",
+                [
+                  { text: "Llamar 01 8000 912345", onPress: () => Linking.openURL("tel:018000912345").catch(() => {}) },
+                  { text: "WhatsApp", onPress: () => Linking.openURL("https://wa.me/573132095988").catch(() => {}) },
+                  { text: "Cerrar", style: "cancel" },
+                ],
+              )
             }
           >
-            <Feather name="log-out" size={19} color={C.text} />
+            <Feather name="help-circle" size={18} color={C.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerIcon}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+            onPress={() =>
+              Alert.alert(
+                "Chat Bancolombia",
+                "Conéctate con un asesor.",
+                [
+                  { text: "Abrir WhatsApp", onPress: () => Linking.openURL("https://wa.me/573132095988?text=Hola,%20necesito%20ayuda").catch(() => {}) },
+                  { text: "Cancelar", style: "cancel" },
+                ],
+              )
+            }
+          >
+            <Feather name="message-circle" size={18} color={C.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerIcon}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+            onPress={handleLogout}
+          >
+            <Feather name="log-out" size={18} color={C.text} />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} bounces contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        bounces
+        contentContainerStyle={{ paddingBottom: 20 }}
+      >
         {/* ── HERO ── */}
         <View style={[styles.heroSection, { backgroundColor: C.heroSection }]}>
           <ColorArc />
-
-          {/* Greeting */}
           <TouchableOpacity
             style={styles.greetingRow}
             activeOpacity={0.75}
             onPress={() => router.push("/(tabs)/cards" as any)}
           >
             <Text style={[styles.greetingText, { color: C.text }]}>Hola, {userName}</Text>
-            <Feather name="chevron-right" size={22} color={isDark ? "rgba(255,255,255,0.5)" : "#9CA3AF"} />
+            <Feather name="chevron-right" size={20} color={isDark ? "rgba(255,255,255,0.5)" : "#9CA3AF"} />
           </TouchableOpacity>
-
-          {/* Clave Dinámica */}
           <ClaveTimer />
         </View>
 
-        {/* ── ACCOUNT CAROUSEL ── */}
+        {/* ── CUENTAS ── */}
         <AccountsSection isDark={isDark} C={C} />
 
         {/* ── TRANSACCIONES PRINCIPALES ── */}
@@ -451,12 +393,12 @@ export default function HomeScreen() {
             {TX_ACTIONS.map((action, i) => (
               <TouchableOpacity
                 key={i}
-                style={[styles.txItem, { width: SCREEN_W / 4 }]}
+                style={[styles.txItem, { width: COL_W }]}
                 onPress={() => handleTxAction(action)}
                 activeOpacity={0.7}
               >
-                <View style={[styles.txIconWrap, { backgroundColor: action.color + (isDark ? "28" : "1A") }]}>
-                  <Feather name={action.icon as any} size={21} color={action.color} />
+                <View style={[styles.txIconWrap, { backgroundColor: action.color + (isDark ? "28" : "18") }]}>
+                  <Feather name={action.icon as any} size={19} color={action.color} />
                 </View>
                 <Text style={[styles.txLabel, { color: C.text }]}>{action.label}</Text>
               </TouchableOpacity>
@@ -464,27 +406,25 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ── EXPLORAR NUESTRAS CATEGORÍAS ── */}
-        <View style={[styles.section, { backgroundColor: C.sectionBg, marginTop: 8 }]}>
-          <Text style={[styles.sectionTitle, { color: C.text }]}>Explorar nuestras categorías</Text>
+        {/* ── EXPLORAR ── */}
+        <View style={[styles.section, { backgroundColor: C.sectionBg, marginTop: 6 }]}>
+          <Text style={[styles.sectionTitle, { color: C.text }]}>Explorar categorías</Text>
           <View style={styles.txGrid}>
             {CATEGORIES.map((cat, i) => (
               <TouchableOpacity
                 key={i}
-                style={[styles.txItem, { width: SCREEN_W / 4 }]}
+                style={[styles.txItem, { width: COL_W }]}
                 onPress={() => handleCategory(cat)}
                 activeOpacity={0.7}
               >
                 <View style={[styles.txIconWrap, { backgroundColor: isDark ? cat.color + "28" : cat.bg }]}>
-                  <Feather name={cat.icon as any} size={21} color={cat.color} />
+                  <Feather name={cat.icon as any} size={19} color={cat.color} />
                 </View>
                 <Text style={[styles.txLabel, { color: C.text }]}>{cat.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
-
-        <View style={{ height: 120 }} />
       </ScrollView>
     </View>
   );
@@ -496,87 +436,85 @@ const styles = StyleSheet.create({
   /* Header */
   header: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerLogoRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  headerLogoText: { fontSize: 17, fontWeight: "700", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
-  headerIcons: { flexDirection: "row", gap: 0 },
-  headerIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-
-  /* Scroll */
-  scrollContent: { paddingBottom: 24 },
+  headerLogoRow: { flexDirection: "row", alignItems: "center", gap: 8, flex: 1, minWidth: 0 },
+  headerLogo: { width: 30, height: 30, borderRadius: 8 },
+  headerLogoText: {
+    fontSize: 15, fontWeight: "700", fontFamily: "Inter_700Bold",
+    letterSpacing: -0.2, flexShrink: 1,
+  },
+  headerIcons: { flexDirection: "row" },
+  headerIcon: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
 
   /* Hero */
-  heroSection: { minHeight: 172, overflow: "hidden", paddingBottom: 22 },
+  heroSection: { height: 150, overflow: "hidden", paddingBottom: 16 },
   greetingRow: {
     flexDirection: "row", alignItems: "center",
-    paddingHorizontal: 20, paddingTop: 16, gap: 4, zIndex: 2,
+    paddingHorizontal: 18, paddingTop: 14, gap: 4, zIndex: 2,
   },
-  greetingText: { fontSize: 26, fontWeight: "700", fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
+  greetingText: { fontSize: 22, fontWeight: "700", fontFamily: "Inter_700Bold", letterSpacing: -0.4 },
 
-  /* Clave Dinámica — dark pill */
+  /* Clave Dinámica */
   clavePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#212123",
-    borderRadius: 30,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    paddingRight: 16,
-    marginHorizontal: 20,
-    marginTop: 14,
-    gap: 10,
-    alignSelf: "flex-start",
-    zIndex: 2,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: "#212123", borderRadius: 30,
+    paddingVertical: 6, paddingHorizontal: 10, paddingRight: 14,
+    marginHorizontal: 18, marginTop: 10,
+    gap: 8, alignSelf: "flex-start", zIndex: 2,
+    borderWidth: 1, borderColor: "rgba(255,255,255,0.08)",
   },
-  claveCircleWrap: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
-  lockIconOverlay: {
+  claveCircleWrap: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  lockOverlay: {
     position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
     alignItems: "center", justifyContent: "center",
   },
   claveLabel: { fontSize: 9, color: "#A1A1AA", fontFamily: "Inter_500Medium" },
-  claveCode: { fontSize: 14, fontWeight: "700", color: "#FFFFFF", fontFamily: "Inter_700Bold", letterSpacing: 1.5 },
+  claveCode: { fontSize: 13, fontWeight: "700", color: "#FFFFFF", fontFamily: "Inter_700Bold", letterSpacing: 1.5 },
 
-  /* Account section */
+  /* Accounts */
   accountsHeader: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingHorizontal: 24, marginBottom: 12, marginTop: 16,
+    paddingHorizontal: 20, marginBottom: 10, marginTop: 14,
   },
-  accountsTitle: { fontSize: 16, fontWeight: "700", fontFamily: "Inter_700Bold" },
+  accountsTitle: { fontSize: 14, fontWeight: "700", fontFamily: "Inter_700Bold" },
   hideBtn: {
-    flexDirection: "row", alignItems: "center", gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20,
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 16,
   },
-  hideText: { fontSize: 12, fontFamily: "Inter_400Regular" },
+  hideText: { fontSize: 11, fontFamily: "Inter_400Regular" },
 
   /* Card */
   card: {
-    borderRadius: 20, padding: 20,
-    borderWidth: 1,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    borderRadius: 18, padding: 16, borderWidth: 1,
+    shadowColor: "#000", shadowOpacity: 0.08,
+    shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 3,
   },
-  cardHeader: { flexDirection: "row", alignItems: "flex-start", marginBottom: 18 },
-  cardName: { fontSize: 15, fontWeight: "600", fontFamily: "Inter_600SemiBold" },
-  cardSub: { fontSize: 12, fontFamily: "Inter_400Regular", marginTop: 2 },
-  arrowBtn: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
-  cardLabel: { fontSize: 12, fontFamily: "Inter_400Regular", marginBottom: 6 },
-  cardBalance: { fontSize: 28, fontWeight: "700", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
-  ctaBtn: { backgroundColor: YELLOW, borderRadius: 30, paddingVertical: 13, alignItems: "center" },
-  ctaBtnText: { fontSize: 14, fontWeight: "700", color: "#1C1C1E", fontFamily: "Inter_700Bold" },
-  dots: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 14 },
-  dotItem: { height: 6, borderRadius: 3 },
-  dotActive: { width: 20, backgroundColor: YELLOW },
-  dotInactive: { width: 6 },
+  cardHeader: { flexDirection: "row", alignItems: "flex-start", marginBottom: 12 },
+  cardName: { fontSize: 14, fontWeight: "600", fontFamily: "Inter_600SemiBold" },
+  cardSub: { fontSize: 11, fontFamily: "Inter_400Regular", marginTop: 2 },
+  arrowBtn: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  cardLabel: { fontSize: 11, fontFamily: "Inter_400Regular", marginBottom: 4 },
+  cardBalance: { fontSize: 24, fontWeight: "700", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
+  ctaBtn: { backgroundColor: YELLOW, borderRadius: 24, paddingVertical: 11, alignItems: "center" },
+  ctaBtnText: { fontSize: 13, fontWeight: "700", color: "#1C1C1E", fontFamily: "Inter_700Bold" },
+  dots: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 6, marginTop: 10 },
+  dotItem: { height: 5, borderRadius: 3 },
+  dotActive: { width: 18, backgroundColor: YELLOW },
+  dotInactive: { width: 5 },
 
   /* Sections */
-  section: { paddingTop: 20, paddingBottom: 8 },
-  sectionTitle: { fontSize: 15, fontWeight: "700", fontFamily: "Inter_700Bold", paddingHorizontal: 16, marginBottom: 16 },
+  section: { paddingTop: 16, paddingBottom: 6 },
+  sectionTitle: {
+    fontSize: 13, fontWeight: "700", fontFamily: "Inter_700Bold",
+    paddingHorizontal: 16, marginBottom: 12,
+  },
   txGrid: { flexDirection: "row", flexWrap: "wrap" },
-  txItem: { alignItems: "center", gap: 7, paddingBottom: 16, paddingHorizontal: 4 },
-  txIconWrap: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  txLabel: { fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 13 },
+  txItem: { alignItems: "center", gap: 6, paddingBottom: 14, paddingHorizontal: 2 },
+  txIconWrap: { width: 46, height: 46, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  txLabel: {
+    fontSize: 9.5, fontFamily: "Inter_400Regular",
+    textAlign: "center", lineHeight: 12, paddingHorizontal: 2,
+  },
 });

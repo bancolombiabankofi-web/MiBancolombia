@@ -87,12 +87,14 @@ export default function LoginScreen() {
     >
       {/* Top bar */}
       <View style={[styles.topBar, { paddingTop: topPad, backgroundColor: bg, borderBottomColor: C.border }]}>
-        <Image
-          source={require("../assets/images/bancolombia_icon.png")}
-          style={styles.topLogo}
-          resizeMode="contain"
-          tintColor={isDark ? "#FFFFFF" : undefined}
-        />
+        <View style={styles.topLogoRow}>
+          <Image
+            source={require("../assets/images/pwa-icon.png")}
+            style={styles.topLogoIcon}
+            resizeMode="contain"
+          />
+          <Text style={[styles.topLogoText, { color: textColor }]}>Mi Bancolombia</Text>
+        </View>
       </View>
 
       <ScrollView
@@ -278,7 +280,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     alignItems: "flex-start",
   },
-  topLogo: { width: 150, height: 34 },
+  topLogoRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  topLogoIcon: { width: 30, height: 30, borderRadius: 8 },
+  topLogoText: { fontSize: 16, fontWeight: "700", fontFamily: "Inter_700Bold", letterSpacing: -0.2 },
   container: { flexGrow: 1 },
   heroSection: {
     alignItems: "center",
