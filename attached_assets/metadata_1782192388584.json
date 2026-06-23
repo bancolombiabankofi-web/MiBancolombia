@@ -1,0 +1,6 @@
+{
+  "name": "Portal Móvil Bancolombia",
+  "description": "Una simulación interactiva fiel de la aplicación móvil de Bancolombia con generación de Clave Dinámica, consulta de saldos, transferencias, pagos de facturas e integración con el Asistente Financiero Inteligente de Gemini para chatear y analizar facturas, recibos y códigos QR.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
