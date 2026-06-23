@@ -3,3 +3,4 @@
 - [Mi Bancolombia type conventions](mi-bancolombia-types.md) — DocType lives in constants/countries.ts; AppContext re-exports it. currentUser (not user) is the logged-in user from useApp(). DocumentType was a ghost type — always use DocType.
 - [Mi Bancolombia +html.tsx PWA CSS](mi-bancolombia-html-tsx.md) — NEVER use body{position:fixed} in +html.tsx; it blanks out React Native Web entirely.
 - [Mi Bancolombia TextInput fontSize rule](mi-bancolombia-textinput-fontsize.md) — All TextInputs must have fontSize≥16 to prevent iOS PWA zoom; all screens fixed as of 2026-06-23.
+- [Mi Bancolombia PWA build](mi-bancolombia-pwa-build.md) — +html.tsx is NOT applied in expo export --platform web (Metro). All PWA meta/SW/manifest must be injected via post-processing in scripts/build.js. Assets land in dist/assets/ (not dist/assets_expo/). Install button must only show after beforeinstallprompt fires.

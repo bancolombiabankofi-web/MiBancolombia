@@ -40,54 +40,49 @@ export default function LoginScreen() {
   useEffect(() => {
     if (Platform.OS !== "web") return;
 
-    // Already running as installed PWA — hide button permanently.
+    // Already running as installed PWA — never show the button.
     const isStandalone =
       (window as any).matchMedia?.("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true;
-
     if (isStandalone) return;
 
-    // Show the button as long as the user is in the browser (not standalone).
-    // The button is always visible so users can install at any time.
-    setShowInstallBtn(true);
+    // Show the button ONLY when Chrome has confirmed the PWA is installable
+    // (i.e., beforeinstallprompt has fired and we have a deferred prompt).
+    const showIfReady = () => {
+      if ((window as any).__pwaInstallPrompt) setShowInstallBtn(true);
+    };
 
-    // Hide once the OS confirms the install completed.
+    // It may have already fired before this component mounted.
+    showIfReady();
+
+    // Or it fires later (first visit, SW just activated, etc.).
+    const onPromptReady = () => setShowInstallBtn(true);
     const onInstalled = () => setShowInstallBtn(false);
-    // Hide if display-mode flips to standalone mid-session (rare).
     const mq = (window as any).matchMedia?.("(display-mode: standalone)");
     const onMqChange = (ev: any) => { if (ev.matches) setShowInstallBtn(false); };
 
+    window.addEventListener("pwa-prompt-ready", onPromptReady);
     window.addEventListener("pwa-installed", onInstalled);
     mq?.addEventListener?.("change", onMqChange);
 
     return () => {
+      window.removeEventListener("pwa-prompt-ready", onPromptReady);
       window.removeEventListener("pwa-installed", onInstalled);
       mq?.removeEventListener?.("change", onMqChange);
     };
   }, []);
 
   const handleInstall = async () => {
-    // Android Chrome / Edge: native install dialog — fully automatic.
     const deferred = (window as any).__pwaInstallPrompt;
-    if (deferred) {
-      try {
-        deferred.prompt();
-        const { outcome } = await deferred.userChoice;
-        if (outcome === "accepted") {
-          setShowInstallBtn(false);
-          (window as any).__pwaInstallPrompt = null;
-        }
-      } catch { /* ignore */ }
-      return;
-    }
-
-    // iOS Safari: open the native Share sheet — closest to automatic on iOS.
-    // The user sees "Add to Home Screen" as the first relevant option.
-    if (navigator.share) {
-      try {
-        await navigator.share({ url: window.location.href });
-      } catch { /* user cancelled */ }
-    }
+    if (!deferred) return; // Button shouldn't be visible if prompt isn't ready.
+    try {
+      deferred.prompt();
+      const { outcome } = await deferred.userChoice;
+      if (outcome === "accepted") {
+        (window as any).__pwaInstallPrompt = null;
+        setShowInstallBtn(false);
+      }
+    } catch { /* ignore */ }
   };
 
   const { login } = useApp();

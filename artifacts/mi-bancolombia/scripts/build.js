@@ -34,12 +34,22 @@ function run(cmd, args, env) {
 }
 
 // --- Find the pwa-icon hash from the built assets ---
+// Expo export puts assets under assets/assets/images/ (Metro web export).
 function findIconPath() {
-  const assetsDir = path.join(distDir, "assets_expo", "assets", "images");
-  if (!fs.existsSync(assetsDir)) return null;
-  const files = fs.readdirSync(assetsDir);
-  const icon = files.find((f) => f.startsWith("pwa-icon") && f.endsWith(".png"));
-  return icon ? `/assets_expo/assets/images/${icon}` : null;
+  const candidates = [
+    path.join(distDir, "assets", "assets", "images"),
+    path.join(distDir, "assets_expo", "assets", "images"),
+  ];
+  for (const dir of candidates) {
+    if (!fs.existsSync(dir)) continue;
+    const files = fs.readdirSync(dir);
+    const icon = files.find((f) => f.startsWith("pwa-icon") && f.endsWith(".png"));
+    if (icon) {
+      const relDir = path.relative(distDir, dir).replace(/\\/g, "/");
+      return `/${relDir}/${icon}`;
+    }
+  }
+  return null;
 }
 
 // --- Patch dist/index.html after expo export ---
@@ -98,15 +108,24 @@ function patchIndexHtml() {
   console.log("Patched index.html with PWA meta, manifest link, and SW registration.");
 }
 
-// --- Copy public/ assets into dist/ ---
+// --- Copy public/ assets into dist/ and patch manifest icon path ---
 function copyPublicAssets() {
   if (!fs.existsSync(publicDir)) return;
+  const iconPath = findIconPath() || "/favicon.ico";
   const files = fs.readdirSync(publicDir);
   for (const file of files) {
     const src = path.join(publicDir, file);
     const dest = path.join(distDir, file);
-    fs.copyFileSync(src, dest);
-    console.log(`Copied public/${file} → dist/${file}`);
+    if (file === "manifest.json") {
+      // Patch the icon path to match the actual hashed filename from this build.
+      const manifest = JSON.parse(fs.readFileSync(src, "utf-8"));
+      manifest.icons = manifest.icons.map((icon) => ({ ...icon, src: iconPath }));
+      fs.writeFileSync(dest, JSON.stringify(manifest, null, 2));
+      console.log(`Copied public/manifest.json → dist/manifest.json (icon: ${iconPath})`);
+    } else {
+      fs.copyFileSync(src, dest);
+      console.log(`Copied public/${file} → dist/${file}`);
+    }
   }
 }
 
