@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -59,7 +60,14 @@ export default function ForgotPasswordScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Feather name="arrow-left" size={22} color={C.text} />
         </TouchableOpacity>
-        <Text style={[styles.topTitle, { color: C.text }]}>Recuperar clave</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Image
+            source={require("../assets/images/pwa-icon.png")}
+            style={{ width: 28, height: 28, borderRadius: 7 }}
+            resizeMode="contain"
+          />
+          <Text style={[styles.topTitle, { color: C.text }]}>Recuperar clave</Text>
+        </View>
         <View style={{ width: 38 }} />
       </View>
 

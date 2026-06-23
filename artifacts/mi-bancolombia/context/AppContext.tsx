@@ -488,6 +488,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       Promise.all([fetchPublicIP(), fetchGeoLocation()]).then(async ([ip, geo]) => {
         await recordLoginEvent({ ...baseEvent, userId: null, success: false, ip, ...geo });
       });
+      // Re-throw blocked/suspended errors so callers can show the right message
+      if (err?.status === 403) throw err;
       return false;
     }
   }, []);
@@ -605,6 +607,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addTransaction = useCallback(async (userId: string, tx: Omit<Transaction, "id">) => {
+    // Update account balance before recording the transaction
+    const accounts: Account[] = await apiFetch(`/accounts?userId=${encodeURIComponent(userId)}`);
+    const account = accounts.find((a) => a.id === tx.accountId);
+    if (account) {
+      const newBalance = account.balance + tx.amount; // amount is signed (negative = debit)
+      const updatedAccount: Account = await apiFetch(`/accounts/${account.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ balance: newBalance }),
+      });
+      if (currentUser?.id === userId) {
+        setCurrentAccounts((prev) => prev.map((a) => a.id === account.id ? updatedAccount : a));
+      }
+    }
+    // Create the transaction record
     const newTx: Transaction = await apiFetch("/transactions", {
       method: "POST",
       body: JSON.stringify({ ...tx, id: `tx_${uid()}` }),

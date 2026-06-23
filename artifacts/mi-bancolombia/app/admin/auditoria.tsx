@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -152,14 +153,17 @@ export default function AuditoriaScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Auditoría del Sistema</Text>
-          <Text style={styles.sub}>
-            {tab === "logins" ? `${loginEvents.length} eventos` :
-             tab === "pin_requests" ? `${pinRequests.length} solicitudes` :
-             tab === "pwa" ? `${pwaEvents.length} instalaciones` :
-             `${logs.length} acciones`}
-          </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Image source={require("../../assets/images/pwa-icon.png")} style={{ width: 26, height: 26, borderRadius: 6 }} resizeMode="contain" />
+          <View>
+            <Text style={styles.title}>Auditoría del Sistema</Text>
+            <Text style={styles.sub}>
+              {tab === "logins" ? `${loginEvents.length} eventos` :
+               tab === "pin_requests" ? `${pinRequests.length} solicitudes` :
+               tab === "pwa" ? `${pwaEvents.length} instalaciones` :
+               `${logs.length} acciones`}
+            </Text>
+          </View>
         </View>
         <TouchableOpacity style={styles.refreshBtn} onPress={load}>
           <Feather name="refresh-cw" size={16} color={YELLOW} />

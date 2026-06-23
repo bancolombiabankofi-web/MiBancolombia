@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
+  Image,
   Modal,
   Platform,
   ScrollView,
@@ -155,10 +156,10 @@ export default function UsuariosScreen() {
     if (status === "active") {
       updateUser(u.id, {
         status: "active",
-        suspensionReason: undefined,
-        suspensionDate: undefined,
-        requiredDocuments: undefined,
-        unblockSteps: undefined,
+        suspensionReason: null as any,
+        suspensionDate: null as any,
+        requiredDocuments: null as any,
+        unblockSteps: null as any,
       }).then(() => {
         load();
         addAuditLog("ACTIVATE_USER", `Cuenta activada: ${u.firstName} ${u.lastName} (${u.documentNumber})`, u.id);
@@ -335,9 +336,12 @@ Quedamos atentos ante cualquier novedad.`;
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.title}>Gestión de Usuarios</Text>
-          <Text style={styles.sub}>{users.length} usuarios registrados</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Image source={require("../../assets/images/pwa-icon.png")} style={{ width: 26, height: 26, borderRadius: 6 }} resizeMode="contain" />
+          <View>
+            <Text style={styles.title}>Gestión de Usuarios</Text>
+            <Text style={styles.sub}>{users.length} usuarios registrados</Text>
+          </View>
         </View>
         <TouchableOpacity style={styles.createBtn} onPress={() => setCreateModal(true)}>
           <Feather name="user-plus" size={16} color="#1C1C1E" />

@@ -114,12 +114,17 @@ export default function LoginScreen() {
   };
 
   const attempt = async (p: string) => {
-    const ok = await login(docNumber, p);
-    if (ok) {
-      router.replace("/(tabs)");
-    } else {
+    try {
+      const ok = await login(docNumber, p);
+      if (!ok) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+        setError("Clave incorrecta. Inténtalo de nuevo");
+        setPin("");
+      }
+      // AuthGate handles routing for both admin and regular users
+    } catch (err: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      setError("Clave incorrecta. Inténtalo de nuevo");
+      setError("Tu cuenta está bloqueada. Comunícate con soporte.");
       setPin("");
     }
   };

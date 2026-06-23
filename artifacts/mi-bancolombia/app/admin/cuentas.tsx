@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -144,8 +145,13 @@ export default function CuentasScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Cuentas</Text>
-        <Text style={styles.sub}>{accounts.length} cuentas · Total: {fmt(totalBalance)}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Image source={require("../../assets/images/pwa-icon.png")} style={{ width: 26, height: 26, borderRadius: 6 }} resizeMode="contain" />
+          <View>
+            <Text style={styles.title}>Cuentas</Text>
+            <Text style={styles.sub}>{accounts.length} cuentas · Total: {fmt(totalBalance)}</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.searchWrap}>

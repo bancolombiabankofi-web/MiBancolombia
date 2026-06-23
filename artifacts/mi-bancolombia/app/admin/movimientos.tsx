@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -74,8 +75,13 @@ export default function MovimientosScreen() {
   return (
     <View style={[styles.container, { paddingTop: topPad }]}>
       <View style={styles.header}>
-        <Text style={styles.title}>Movimientos</Text>
-        <Text style={styles.sub}>{filtered.length} de {transactions.length} movimientos</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Image source={require("../../assets/images/pwa-icon.png")} style={{ width: 26, height: 26, borderRadius: 6 }} resizeMode="contain" />
+          <View>
+            <Text style={styles.title}>Movimientos</Text>
+            <Text style={styles.sub}>{filtered.length} de {transactions.length} movimientos</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.summary}>

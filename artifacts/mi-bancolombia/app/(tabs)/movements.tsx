@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -124,7 +125,10 @@ export default function MovementsScreen() {
     <View style={[styles.container, { paddingTop: topPad, backgroundColor: C.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: C.surface, borderBottomColor: C.border }]}>
-        <Text style={[styles.title, { color: C.text }]}>Movimientos</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Image source={require("../../assets/images/pwa-icon.png")} style={{ width: 26, height: 26, borderRadius: 7 }} resizeMode="contain" />
+          <Text style={[styles.title, { color: C.text }]}>Movimientos</Text>
+        </View>
         <TouchableOpacity
           style={[styles.filterIconBtn, { backgroundColor: hasActiveFilter ? "#FDDA24" : (isDark ? "#1A1A1C" : "#F5F5F7") }]}
           onPress={openFilter}

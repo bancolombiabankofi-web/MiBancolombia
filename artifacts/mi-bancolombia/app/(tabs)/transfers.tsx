@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import {
   Alert,
   Dimensions,
+  Image,
   KeyboardAvoidingView,
   Linking,
   Platform,
@@ -780,7 +781,10 @@ export default function TransfersScreen() {
   return (
     <View style={[ms.container, { paddingTop: topPad }]}>
       <View style={ms.header}>
-        <Text style={ms.title}>Transacciones</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Image source={require("../../assets/images/pwa-icon.png")} style={{ width: 26, height: 26, borderRadius: 7 }} resizeMode="contain" />
+          <Text style={ms.title}>Transacciones</Text>
+        </View>
       </View>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={ms.grid}>

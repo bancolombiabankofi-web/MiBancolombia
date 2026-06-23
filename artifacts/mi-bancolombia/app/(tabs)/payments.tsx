@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   Alert,
+  Image,
   Linking,
   Modal,
   ScrollView,
@@ -364,7 +365,10 @@ function ExplorarView({ isDark, C, onNavigateRecargar, onNavigateFacturas }: {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: C.background }} showsVerticalScrollIndicator={false} bounces>
       <View style={[eS.header, { backgroundColor: C.surface, borderBottomColor: C.border }]}>
-        <Text style={[eS.title, { color: C.text }]}>Explorar</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Image source={require("../../assets/images/pwa-icon.png")} style={{ width: 26, height: 26, borderRadius: 7 }} resizeMode="contain" />
+          <Text style={[eS.title, { color: C.text }]}>Explorar</Text>
+        </View>
       </View>
 
       {/* ── Organiza tu plata ── */}
