@@ -60,20 +60,27 @@ export function formatBalance(
   currencySymbol: string,
   showCode = true,
 ): string {
+  const negative = amount < 0;
   const abs = Math.abs(amount);
   const isWhole = WHOLE_CURRENCIES.has(currencyCode);
   const locale = EN_LOCALES.has(currencyCode) ? "en-US" : "es-CO";
+  const sign = negative ? "-" : "";
   try {
     const num = new Intl.NumberFormat(locale, {
       minimumFractionDigits: isWhole ? 0 : 2,
       maximumFractionDigits: isWhole ? 0 : 2,
     }).format(abs);
     return showCode
-      ? `${currencySymbol} ${num} ${currencyCode}`
-      : `${currencySymbol} ${num}`;
+      ? `${currencySymbol} ${sign}${num} ${currencyCode}`
+      : `${currencySymbol} ${sign}${num}`;
   } catch {
-    return `${currencySymbol} ${abs.toLocaleString()}${showCode ? ` ${currencyCode}` : ""}`;
+    return `${currencySymbol} ${sign}${abs.toLocaleString()}${showCode ? ` ${currencyCode}` : ""}`;
   }
+}
+
+/** Returns a masked balance string like "$ •••••• COP" for privacy mode */
+export function maskedBalance(currencyCode: string, currencySymbol: string): string {
+  return `${currencySymbol} •••••• ${currencyCode}`;
 }
 
 export function formatAmount(amount: number, country: Country): string {

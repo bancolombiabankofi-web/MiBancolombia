@@ -432,7 +432,7 @@ function RecargarView({ onBack, currencyCode, currencySymbol }: { onBack: () => 
                 onPress={() => handleRecharge(v)}
               >
                 <Text style={{ fontSize: 14, fontWeight: "700", color: "#1C1C1E", fontFamily: "Inter_700Bold" }}>
-                  {formatBalance(v, currencyCode, currencySymbol, false)}
+                  {formatBalance(v, currencyCode, currencySymbol, true)}
                 </Text>
               </TouchableOpacity>
             ))}

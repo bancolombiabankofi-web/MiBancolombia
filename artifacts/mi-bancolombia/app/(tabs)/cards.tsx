@@ -17,13 +17,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { useTheme } from "@/hooks/useTheme";
 import type { Account, Card, RegisteredUser } from "@/context/AppContext";
+import { formatBalance } from "@/constants/countries";
 
 const YELLOW = "#FDDA24";
 const BANCOLOMBIA_BLUE = "#003087";
 
 /* ─────────────────────────── helpers ─────────────────────────── */
 function fmtCurrency(amount: number, symbol: string, code: string) {
-  return `${symbol} ${amount.toLocaleString("es-CO", { minimumFractionDigits: 2 })} ${code}`;
+  return formatBalance(amount, code, symbol, true);
 }
 function maskNumber(n: string, keep = 4) {
   return "•••• " + n.slice(-keep);

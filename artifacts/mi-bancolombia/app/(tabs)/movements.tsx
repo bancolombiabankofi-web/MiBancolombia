@@ -109,14 +109,14 @@ export default function MovementsScreen() {
         <View style={styles.summaryItem}>
           <Text style={[styles.summaryLabel, { color: C.textSecondary }]}>↑ Ingresos</Text>
           <Text style={[styles.summaryValue, styles.summaryCredit]} numberOfLines={1} adjustsFontSizeToFit>
-            {balanceVisible ? `+${creditStr}` : "•••••"}
+            {balanceVisible ? `+${creditStr}` : `${currencySymbol} •••• ${currencyCode}`}
           </Text>
         </View>
         <View style={[styles.summarySep, { backgroundColor: C.border }]} />
         <View style={styles.summaryItem}>
           <Text style={[styles.summaryLabel, { color: C.textSecondary }]}>↓ Egresos</Text>
           <Text style={[styles.summaryValue, styles.summaryDebit]} numberOfLines={1} adjustsFontSizeToFit>
-            {balanceVisible ? `-${debitStr}` : "•••••"}
+            {balanceVisible ? `-${debitStr}` : `${currencySymbol} •••• ${currencyCode}`}
           </Text>
         </View>
       </View>

@@ -20,7 +20,7 @@ import Svg, { Circle, Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { useTheme } from "@/hooks/useTheme";
-import { formatBalance } from "@/constants/countries";
+import { formatBalance, maskedBalance } from "@/constants/countries";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const YELLOW = "#FDDA24";
@@ -282,7 +282,7 @@ function AccountsSection({ isDark, C }: { isDark: boolean; C: any }) {
       >
         {accounts.map((acc) => {
           const label = accountTypeLabel(acc.type);
-          const bal = formatBalance(acc.balance, acc.currencyCode, acc.currencySymbol, false);
+          const bal = formatBalance(acc.balance, acc.currencyCode, acc.currencySymbol, true);
           return (
             <View key={acc.id}
               style={[styles.card, { width: CARD_W, backgroundColor: cardBg, borderColor: cardBorder }]}>
@@ -307,8 +307,8 @@ function AccountsSection({ isDark, C }: { isDark: boolean; C: any }) {
               <View style={{ marginBottom: 14 }}>
                 <Text style={[styles.balLabel, { color: C.textSecondary }]}>Saldo disponible</Text>
                 {balanceVisible
-                  ? <Text style={[styles.balAmount, { color: C.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{bal}</Text>
-                  : <Text style={[styles.balHidden, { color: C.text }]}>••••••</Text>
+                  ? <Text style={[styles.balAmount, { color: C.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.55}>{bal}</Text>
+                  : <Text style={[styles.balHidden, { color: C.text }]}>{maskedBalance(acc.currencyCode, acc.currencySymbol)}</Text>
                 }
               </View>
 
@@ -364,7 +364,7 @@ function AccountsSection({ isDark, C }: { isDark: boolean; C: any }) {
               <Text style={[styles.detailValue, { color: YELLOW, fontWeight: "700" }]}>
                 {balanceVisible
                   ? formatBalance(selectedAcc.balance, selectedAcc.currencyCode, selectedAcc.currencySymbol, true)
-                  : `${selectedAcc.currencySymbol} ••••••`
+                  : maskedBalance(selectedAcc.currencyCode, selectedAcc.currencySymbol)
                 }
               </Text>
             </View>
