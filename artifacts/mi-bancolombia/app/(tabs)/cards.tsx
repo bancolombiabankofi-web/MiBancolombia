@@ -272,9 +272,56 @@ function EditProfileModal({
 }
 
 /* ══════════════════════════════════════════════════════════════
-   MODAL: Seguridad
+   MODAL: Seguridad (con cambio de PIN real + OTP + biometría)
 ══════════════════════════════════════════════════════════════ */
-function SecurityModal({ visible, onClose, C }: { visible: boolean; onClose: () => void; C: ReturnType<typeof useTheme>["C"] }) {
+function SecurityModal({ visible, onClose, C, isDark }: {
+  visible: boolean; onClose: () => void;
+  C: ReturnType<typeof useTheme>["C"]; isDark: boolean;
+}) {
+  const { currentUser: user, updateUser } = useApp();
+  type SubView = "menu" | "pin-current" | "pin-new" | "pin-confirm" | "pin-done"
+    | "otp" | "biometria" | "devices" | "fraude" | "fraude-done";
+  const [view, setView] = useState<SubView>("menu");
+  const [currentPin, setCurrentPin] = useState("");
+  const [newPin, setNewPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [biometria, setBiometria] = useState(false);
+  const [otpCode] = useState(() => String(Math.floor(100000 + Math.random() * 900000)));
+  const [otpExpiry] = useState(() => { const d = new Date(); d.setMinutes(d.getMinutes() + 3); return d; });
+
+  const reset = () => {
+    setView("menu"); setCurrentPin(""); setNewPin(""); setConfirmPin(""); setPinError("");
+  };
+
+  const handleClose = () => { reset(); onClose(); };
+
+  const pinDots = (p: string, total = 4) => Array.from({ length: total }, (_, i) => (
+    <View key={i} style={[styles.pinDot, { backgroundColor: i < p.length ? YELLOW : (isDark ? "#3A3A3C" : "#D1D1D6") }]} />
+  ));
+
+  const pinPadDigits = ["1","2","3","4","5","6","7","8","9","","0","⌫"];
+
+  const PinInput = ({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) => (
+    <View style={{ alignItems: "center" }}>
+      <Text style={[styles.menuSub, { color: C.textSecondary, marginBottom: 20, fontSize: 14 }]}>{label}</Text>
+      <View style={{ flexDirection: "row", gap: 16, marginBottom: 32 }}>{pinDots(value)}</View>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", width: 240, gap: 0 }}>
+        {pinPadDigits.map((d, i) => (
+          <TouchableOpacity key={i} style={styles.pinKey}
+            onPress={() => {
+              if (d === "") return;
+              if (d === "⌫") { onChange(value.slice(0, -1)); setPinError(""); return; }
+              if (value.length < 4) onChange(value + d);
+            }}
+          >
+            <Text style={[styles.pinKeyText, { color: d === "⌫" ? "#EF4444" : C.text }]}>{d}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
   const options = [
     { icon: "lock" as const, label: "Cambiar clave", desc: "Actualiza tu PIN de acceso", color: "#10B981" },
     { icon: "eye-off" as const, label: "Clave dinámica", desc: "Token de un solo uso (OTP)", color: "#3B82F6" },
@@ -282,37 +329,232 @@ function SecurityModal({ visible, onClose, C }: { visible: boolean; onClose: () 
     { icon: "monitor" as const, label: "Dispositivos autorizados", desc: "Administra tus sesiones activas", color: "#F59E0B" },
     { icon: "alert-triangle" as const, label: "Reportar fraude", desc: "Bloquea y reporta actividad sospechosa", color: "#EF4444" },
   ];
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <View style={[styles.sheetContainer, { backgroundColor: C.background }]}>
         <View style={[styles.sheetHeader, { borderBottomColor: C.border, backgroundColor: C.surface }]}>
-          <TouchableOpacity onPress={onClose} style={styles.sheetClose}>
-            <Feather name="x" size={22} color={C.textSecondary} />
+          <TouchableOpacity onPress={view === "menu" ? handleClose : reset} style={styles.sheetClose}>
+            <Feather name={view === "menu" ? "x" : "arrow-left"} size={22} color={C.textSecondary} />
           </TouchableOpacity>
-          <Text style={[styles.sheetTitle, { color: C.text }]}>Seguridad</Text>
+          <Text style={[styles.sheetTitle, { color: C.text }]}>
+            {view === "menu" ? "Seguridad"
+              : view.startsWith("pin") ? "Cambiar clave"
+              : view === "otp" ? "Clave dinámica"
+              : view === "biometria" ? "Biometría"
+              : view === "devices" ? "Dispositivos"
+              : "Reportar fraude"}
+          </Text>
           <View style={{ width: 40 }} />
         </View>
-        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }}>
-          <View style={[styles.optionsCard, { backgroundColor: C.surface }]}>
-            {options.map((o, i) => (
-              <View key={o.label}>
-                <TouchableOpacity
-                  style={styles.menuItem}
-                  onPress={() => Alert.alert(o.label, `${o.desc}.\n\nFuncionalidad disponible próximamente en esta versión.`)}
-                >
-                  <View style={[styles.menuIconWrap, { backgroundColor: o.color + "20" }]}>
-                    <Feather name={o.icon} size={18} color={o.color} />
+
+        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+          {/* ─── MENU ─── */}
+          {view === "menu" && (
+            <View style={[styles.optionsCard, { backgroundColor: C.surface }]}>
+              {options.map((o, i) => (
+                <View key={o.label}>
+                  <TouchableOpacity style={styles.menuItem} onPress={() => {
+                    if (o.label === "Cambiar clave") setView("pin-current");
+                    else if (o.label === "Clave dinámica") setView("otp");
+                    else if (o.label === "Biometría") setView("biometria");
+                    else if (o.label === "Dispositivos autorizados") setView("devices");
+                    else setView("fraude");
+                  }}>
+                    <View style={[styles.menuIconWrap, { backgroundColor: o.color + "20" }]}>
+                      <Feather name={o.icon} size={18} color={o.color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.menuLabel, { color: C.text }]}>{o.label}</Text>
+                      <Text style={[styles.menuSub, { color: C.textSecondary }]}>{o.desc}</Text>
+                    </View>
+                    <Feather name="chevron-right" size={16} color={C.textLight} />
+                  </TouchableOpacity>
+                  {i < options.length - 1 && <View style={[styles.divider, { backgroundColor: C.divider, marginLeft: 68 }]} />}
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* ─── CAMBIAR CLAVE: paso 1 ─── */}
+          {view === "pin-current" && (
+            <>
+              <PinInput value={currentPin} onChange={(v) => { setCurrentPin(v); setPinError(""); }} label="Ingresa tu clave actual" />
+              {pinError ? <Text style={{ color: "#EF4444", textAlign: "center", marginTop: 8, fontFamily: "Inter_400Regular" }}>{pinError}</Text> : null}
+              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: YELLOW, marginTop: 16 }]} onPress={() => {
+                if (currentPin.length < 4) { setPinError("Ingresa los 4 dígitos de tu clave actual"); return; }
+                if (user && currentPin !== user.pin) { setPinError("Clave incorrecta. Inténtalo de nuevo."); setCurrentPin(""); return; }
+                setPinError(""); setView("pin-new");
+              }}>
+                <Text style={styles.saveBtnText}>Continuar</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* ─── CAMBIAR CLAVE: paso 2 ─── */}
+          {view === "pin-new" && (
+            <>
+              <PinInput value={newPin} onChange={(v) => { setNewPin(v); setPinError(""); }} label="Ingresa tu nueva clave (4 dígitos)" />
+              {pinError ? <Text style={{ color: "#EF4444", textAlign: "center", marginTop: 8, fontFamily: "Inter_400Regular" }}>{pinError}</Text> : null}
+              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: YELLOW, marginTop: 16 }]} onPress={() => {
+                if (newPin.length < 4) { setPinError("Ingresa los 4 dígitos de tu nueva clave"); return; }
+                if (newPin === currentPin) { setPinError("La nueva clave no puede ser igual a la actual"); return; }
+                setPinError(""); setView("pin-confirm");
+              }}>
+                <Text style={styles.saveBtnText}>Continuar</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* ─── CAMBIAR CLAVE: paso 3 ─── */}
+          {view === "pin-confirm" && (
+            <>
+              <PinInput value={confirmPin} onChange={(v) => { setConfirmPin(v); setPinError(""); }} label="Confirma tu nueva clave" />
+              {pinError ? <Text style={{ color: "#EF4444", textAlign: "center", marginTop: 8, fontFamily: "Inter_400Regular" }}>{pinError}</Text> : null}
+              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: YELLOW, marginTop: 16 }]} onPress={async () => {
+                if (confirmPin.length < 4) { setPinError("Ingresa los 4 dígitos para confirmar"); return; }
+                if (confirmPin !== newPin) { setPinError("Las claves no coinciden. Inténtalo de nuevo."); setConfirmPin(""); return; }
+                if (user) await updateUser(user.id, { pin: newPin });
+                setView("pin-done");
+              }}>
+                <Text style={styles.saveBtnText}>Cambiar clave</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* ─── CAMBIAR CLAVE: éxito ─── */}
+          {view === "pin-done" && (
+            <View style={{ alignItems: "center", paddingVertical: 32 }}>
+              <View style={[styles.menuIconWrap, { width: 72, height: 72, borderRadius: 36, backgroundColor: "#10B98120" }]}>
+                <Feather name="check-circle" size={36} color="#10B981" />
+              </View>
+              <Text style={[styles.menuLabel, { color: C.text, fontSize: 20, marginTop: 20, textAlign: "center" }]}>¡Clave actualizada!</Text>
+              <Text style={[styles.menuSub, { color: C.textSecondary, textAlign: "center", marginTop: 8 }]}>Tu nueva clave ha sido guardada correctamente.</Text>
+              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: YELLOW, marginTop: 32, alignSelf: "stretch" }]} onPress={handleClose}>
+                <Text style={styles.saveBtnText}>Listo</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* ─── CLAVE DINÁMICA ─── */}
+          {view === "otp" && (
+            <View style={{ alignItems: "center" }}>
+              <View style={[styles.menuIconWrap, { width: 72, height: 72, borderRadius: 36, backgroundColor: "#3B82F620", marginBottom: 20 }]}>
+                <Feather name="eye-off" size={32} color="#3B82F6" />
+              </View>
+              <Text style={[styles.menuLabel, { color: C.text, fontSize: 18, textAlign: "center", marginBottom: 8 }]}>Tu clave dinámica</Text>
+              <Text style={[styles.menuSub, { color: C.textSecondary, textAlign: "center", marginBottom: 24 }]}>
+                Válida por 3 minutos · No la compartas con nadie
+              </Text>
+              <View style={[styles.otpBox, { backgroundColor: C.surface, borderColor: "#3B82F640" }]}>
+                <Text style={[styles.otpCode, { color: C.text }]}>{otpCode.slice(0,3)} {otpCode.slice(3)}</Text>
+              </View>
+              <Text style={[styles.menuSub, { color: C.textSecondary, textAlign: "center", marginTop: 12 }]}>
+                Vence: {otpExpiry.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+              </Text>
+              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: YELLOW, marginTop: 32, alignSelf: "stretch" }]} onPress={reset}>
+                <Text style={styles.saveBtnText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* ─── BIOMETRÍA ─── */}
+          {view === "biometria" && (
+            <>
+              <View style={[styles.optionsCard, { backgroundColor: C.surface }]}>
+                <View style={styles.menuItem}>
+                  <View style={[styles.menuIconWrap, { backgroundColor: "#8B5CF620" }]}>
+                    <Feather name="smartphone" size={18} color="#8B5CF6" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.menuLabel, { color: C.text }]}>{o.label}</Text>
-                    <Text style={[styles.menuSub, { color: C.textSecondary }]}>{o.desc}</Text>
+                    <Text style={[styles.menuLabel, { color: C.text }]}>Huella dactilar / Face ID</Text>
+                    <Text style={[styles.menuSub, { color: C.textSecondary }]}>
+                      {biometria ? "Activada · Inicio de sesión rápido" : "Desactivada"}
+                    </Text>
                   </View>
-                  <Feather name="chevron-right" size={16} color={C.textLight} />
-                </TouchableOpacity>
-                {i < options.length - 1 && <View style={[styles.divider, { backgroundColor: C.divider, marginLeft: 68 }]} />}
+                  <Switch
+                    value={biometria}
+                    onValueChange={(v) => {
+                      setBiometria(v);
+                      Alert.alert(v ? "Biometría activada" : "Biometría desactivada",
+                        v ? "Ahora puedes iniciar sesión con tu huella o Face ID." : "Se ha desactivado el inicio de sesión biométrico.");
+                    }}
+                    trackColor={{ false: isDark ? "#3A3A3C" : "#E5E7EB", true: "#8B5CF6" }}
+                    thumbColor={biometria ? "#FFFFFF" : "#FFFFFF"}
+                  />
+                </View>
               </View>
-            ))}
-          </View>
+              <Text style={[styles.menuSub, { color: C.textSecondary, marginTop: 12, paddingHorizontal: 4 }]}>
+                La biometría se usa únicamente para verificar tu identidad en este dispositivo.
+              </Text>
+            </>
+          )}
+
+          {/* ─── DISPOSITIVOS AUTORIZADOS ─── */}
+          {view === "devices" && (
+            <View style={[styles.optionsCard, { backgroundColor: C.surface }]}>
+              {[
+                { device: "iPhone 14 Pro", location: "Bogotá, CO", time: "Hace 2 min", current: true },
+                { device: "Chrome / macOS", location: "Medellín, CO", time: "Hace 1 día", current: false },
+                { device: "Samsung Galaxy S23", location: "Cali, CO", time: "Hace 5 días", current: false },
+              ].map((s, i, arr) => (
+                <View key={s.device}>
+                  <View style={[styles.menuItem, { paddingVertical: 14 }]}>
+                    <View style={[styles.menuIconWrap, { backgroundColor: s.current ? "#10B98120" : "#F59E0B20" }]}>
+                      <Feather name={s.current ? "smartphone" : "monitor"} size={18} color={s.current ? "#10B981" : "#F59E0B"} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.menuLabel, { color: C.text }]}>{s.device} {s.current ? "· Actual" : ""}</Text>
+                      <Text style={[styles.menuSub, { color: C.textSecondary }]}>{s.location} · {s.time}</Text>
+                    </View>
+                    {!s.current && (
+                      <TouchableOpacity onPress={() => Alert.alert("Sesión cerrada", `Se cerró la sesión en ${s.device}.`)}>
+                        <Feather name="log-out" size={16} color="#EF4444" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  {i < arr.length - 1 && <View style={[styles.divider, { backgroundColor: C.divider, marginLeft: 68 }]} />}
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* ─── REPORTAR FRAUDE ─── */}
+          {view === "fraude" && (
+            <View style={{ alignItems: "center" }}>
+              <View style={[styles.menuIconWrap, { width: 72, height: 72, borderRadius: 36, backgroundColor: "#EF444420", marginBottom: 20 }]}>
+                <Feather name="alert-triangle" size={32} color="#EF4444" />
+              </View>
+              <Text style={[styles.menuLabel, { color: C.text, fontSize: 18, textAlign: "center", marginBottom: 8 }]}>Reportar fraude</Text>
+              <Text style={[styles.menuSub, { color: C.textSecondary, textAlign: "center", marginBottom: 28, lineHeight: 20 }]}>
+                ¿Detectaste actividad sospechosa en tu cuenta? Bloquea el acceso de inmediato y repórtalo a Bancolombia.
+              </Text>
+              <View style={{ alignSelf: "stretch", gap: 12 }}>
+                <TouchableOpacity style={[styles.saveBtn, { backgroundColor: "#EF4444" }]} onPress={() => {
+                  Alert.alert("⚠️ Cuenta bloqueada", "Hemos bloqueado el acceso a tu cuenta. Un asesor te contactará en los próximos minutos.");
+                  setView("fraude-done");
+                }}>
+                  <Text style={[styles.saveBtnText, { color: "#FFFFFF" }]}>Bloquear y reportar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.saveBtn, { backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border }]} onPress={() => { Alert.alert("Llamando...", "Marcando línea de fraude 018000912345..."); }}>
+                  <Text style={[styles.saveBtnText, { color: C.text }]}>Llamar línea anti-fraude</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
+          {view === "fraude-done" && (
+            <View style={{ alignItems: "center", paddingVertical: 32 }}>
+              <View style={[styles.menuIconWrap, { width: 72, height: 72, borderRadius: 36, backgroundColor: "#10B98120" }]}>
+                <Feather name="check-circle" size={36} color="#10B981" />
+              </View>
+              <Text style={[styles.menuLabel, { color: C.text, fontSize: 20, marginTop: 20, textAlign: "center" }]}>Reporte enviado</Text>
+              <Text style={[styles.menuSub, { color: C.textSecondary, textAlign: "center", marginTop: 8 }]}>Nos contactaremos contigo pronto para resolver tu caso.</Text>
+              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: YELLOW, marginTop: 32, alignSelf: "stretch" }]} onPress={handleClose}>
+                <Text style={styles.saveBtnText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </ScrollView>
       </View>
     </Modal>
@@ -872,7 +1114,7 @@ export default function AjustesScreen() {
     {
       title: "Configuración",
       items: [
-        { icon: (isDark ? "moon" : "sun") as const, label: "Modo oscuro", sub: isDark ? "Activado" : "Desactivado", color: "#6B7280", toggle: true, onPress: () => setThemeMode(isDark ? "light" : "dark") },
+        { icon: (isDark ? "moon" : "sun") as keyof typeof Feather.glyphMap, label: "Modo oscuro", sub: isDark ? "Activado" : "Desactivado", color: "#6B7280", toggle: true, onPress: () => setThemeMode(isDark ? "light" : "dark") },
         { icon: "help-circle" as const, label: "Centro de ayuda", sub: "Preguntas frecuentes y contacto", color: "#06B6D4", onPress: () => setModal("help") },
         { icon: "message-circle" as const, label: "Chat con Bancolombia", sub: "WhatsApp y asesores en línea", color: "#25D366", onPress: () => setModal("chat") },
         { icon: "star" as const, label: "Califica la app", sub: "Tu opinión nos importa", color: "#F59E0B", onPress: () => setModal("rating") },
@@ -885,7 +1127,7 @@ export default function AjustesScreen() {
       {/* ── Modals ── */}
       <ProfileDetailModal visible={modal === "profile"} onClose={() => setModal(null)} user={currentUser} accounts={accounts} cards={cards ?? []} isDark={isDark} C={C} onEdit={() => setModal("editProfile")} />
       <EditProfileModal visible={modal === "editProfile"} onClose={() => setModal(null)} user={currentUser} onSave={handleSaveProfile} C={C} isDark={isDark} />
-      <SecurityModal visible={modal === "security"} onClose={() => setModal(null)} C={C} />
+      <SecurityModal visible={modal === "security"} onClose={() => setModal(null)} C={C} isDark={isDark} />
       <NotificationsModal visible={modal === "notifications"} onClose={() => setModal(null)} C={C} isDark={isDark} />
       <ProductsModal visible={modal === "products"} onClose={() => setModal(null)} accounts={accounts} cards={cards ?? []} C={C} />
       <ExtractosModal visible={modal === "extractos"} onClose={() => setModal(null)} accounts={accounts} C={C} />
@@ -1050,4 +1292,13 @@ const styles = StyleSheet.create({
   /* Chat */
   chatBadge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   chatBadgeText: { fontSize: 13, fontWeight: "600", fontFamily: "Inter_600SemiBold" },
+
+  /* PIN pad */
+  pinDot: { width: 16, height: 16, borderRadius: 8 },
+  pinKey: { width: "33.33%", aspectRatio: 1.6, alignItems: "center", justifyContent: "center" },
+  pinKeyText: { fontSize: 22, fontWeight: "600", fontFamily: "Inter_600SemiBold" },
+
+  /* OTP */
+  otpBox: { borderWidth: 2, borderRadius: 16, paddingHorizontal: 32, paddingVertical: 20 },
+  otpCode: { fontSize: 38, fontWeight: "700", fontFamily: "Inter_700Bold", letterSpacing: 8 },
 });

@@ -1,7 +1,7 @@
 import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Image,
   KeyboardAvoidingView,
@@ -22,6 +22,7 @@ import { COUNTRIES, DOC_TYPE_LABELS, ALL_DOC_TYPES, type Country, type DocType }
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const YELLOW = "#FDDA24";
+const GREEN = "#10B981";
 
 export default function LoginScreen() {
   const [step, setStep] = useState<"identify" | "pin">("identify");
@@ -33,6 +34,35 @@ export default function LoginScreen() {
   const [countrySearch, setCountrySearch] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const installPromptRef = useRef<any>(null);
+  const [canInstall, setCanInstall] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const handler = (e: Event) => {
+      e.preventDefault();
+      installPromptRef.current = e;
+      setCanInstall(true);
+    };
+    (window as any).addEventListener("beforeinstallprompt", handler);
+    (window as any).addEventListener("appinstalled", () => setCanInstall(false));
+    return () => {
+      (window as any).removeEventListener("beforeinstallprompt", handler);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPromptRef.current) return;
+    installPromptRef.current.prompt();
+    try {
+      const { outcome } = await installPromptRef.current.userChoice;
+      if (outcome === "accepted") {
+        setCanInstall(false);
+        installPromptRef.current = null;
+      }
+    } catch { /* ignore */ }
+  };
 
   const { login } = useApp();
   const { C, isDark } = useTheme();
@@ -68,7 +98,7 @@ export default function LoginScreen() {
       router.replace("/(tabs)");
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      setError("Clave incorrecta. Inténtalo de nuevo");
+      setError("Clave incorrecta o cuenta suspendida. Inténtalo de nuevo");
       setPin("");
     }
   };
@@ -94,6 +124,12 @@ export default function LoginScreen() {
             resizeMode="contain"
           />
           <Text style={[styles.topLogoText, { color: textColor }]}>Mi Bancolombia</Text>
+          {canInstall && (
+            <TouchableOpacity style={styles.installBtn} onPress={handleInstall} activeOpacity={0.82}>
+              <Feather name="download" size={11} color="#FFFFFF" />
+              <Text style={styles.installBtnText}>Instala banca móvil</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -214,7 +250,6 @@ export default function LoginScreen() {
                 <Feather name="arrow-right" size={18} color="#1C1C1E" />
               </TouchableOpacity>
 
-
               <View style={styles.footer}>
                 <TouchableOpacity onPress={() => router.push("/forgot-password" as any)}>
                   <Text style={[styles.linkText, { color: textColor }]}>¿Olvidaste tu clave?</Text>
@@ -275,14 +310,29 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   topBar: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
     alignItems: "flex-start",
   },
-  topLogoRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  topLogoRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "nowrap" },
   topLogoIcon: { width: 30, height: 30, borderRadius: 8 },
-  topLogoText: { fontSize: 16, fontWeight: "700", fontFamily: "Inter_700Bold", letterSpacing: -0.2 },
+  topLogoText: { fontSize: 15, fontWeight: "700", fontFamily: "Inter_700Bold", letterSpacing: -0.2 },
+  installBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: GREEN,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginLeft: 4,
+  },
+  installBtnText: {
+    fontSize: 11,
+    fontFamily: "Inter_600SemiBold",
+    color: "#FFFFFF",
+  },
   container: { flexGrow: 1 },
   heroSection: {
     alignItems: "center",

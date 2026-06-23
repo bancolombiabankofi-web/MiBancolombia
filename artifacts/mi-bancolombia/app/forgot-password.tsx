@@ -15,14 +15,13 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import Colors from "@/constants/colors";
-import type { DocumentType } from "@/context/AppContext";
+import type { DocType } from "@/constants/countries";
 
-const DOC_TYPES: { label: string; value: DocumentType }[] = [
+const DOC_TYPES: { label: string; value: DocType }[] = [
   { label: "Cédula de Ciudadanía (CC)", value: "CC" },
   { label: "Cédula de Extranjería (CE)", value: "CE" },
-  { label: "NIT", value: "NIT" },
   { label: "Pasaporte (PA)", value: "PA" },
-  { label: "Tarjeta de Identidad (TI)", value: "TI" },
+  { label: "Documento Nacional (DNI)", value: "DNI" },
 ];
 
 export default function ForgotPasswordScreen() {
@@ -35,7 +34,7 @@ export default function ForgotPasswordScreen() {
   const topPad = insets.top > 0 ? insets.top : 20;
 
   const [step, setStep] = useState<"form" | "sent">("form");
-  const [docType, setDocType] = useState<DocumentType>("CC");
+  const [docType, setDocType] = useState<DocType>("CC");
   const [docNumber, setDocNumber] = useState("");
   const [email, setEmail] = useState("");
   const [showPicker, setShowPicker] = useState(false);

@@ -36,7 +36,11 @@ export type RegisteredUser = {
   motherName?: string;
   motherPhone?: string;
   googleEmail?: string;
+  suspensionReason?: string;
+  suspensionDate?: string;
 };
+
+export type { DocType };
 
 export type Account = {
   id: string;

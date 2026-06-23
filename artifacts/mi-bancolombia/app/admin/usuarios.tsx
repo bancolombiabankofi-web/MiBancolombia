@@ -30,6 +30,17 @@ const STATUS_LABEL: Record<string, string> = { active: "Activo", suspended: "Sus
 
 const DOC_TYPES: DocType[] = ["CC", "CE", "PA"];
 
+const SUSPENSION_REASONS = [
+  "Actividad sospechosa",
+  "Solicitud del titular",
+  "Deuda pendiente",
+  "Verificación de identidad",
+  "Reportado por fraude",
+  "Incumplimiento de términos",
+  "Investigación interna",
+  "Otro motivo",
+];
+
 export default function UsuariosScreen() {
   const { getAllUsers, updateUser, deleteUser, createUser, addAuditLog } = useApp();
   const insets = useSafeAreaInsets();
@@ -43,22 +54,24 @@ export default function UsuariosScreen() {
   const [editData, setEditData] = useState<Partial<RegisteredUser>>({});
   const [loading, setLoading] = useState(true);
 
-  const [newUser, setNewUser] = useState({
-    firstName: "",
-    secondName: "",
-    lastName: "",
-    secondLastName: "",
-    documentType: "CC" as DocType,
-    documentNumber: "",
-    birthDate: "",
-    email: "",
-    phone: "",
-    pin: "",
-    confirmPin: "",
-    countryResidence: "CO",
-    countryBirth: "CO",
-    currencyCode: "COP",
-    currencySymbol: "$",
+  const [suspendModal, setSuspendModal] = useState(false);
+  const [suspendTarget, setSuspendTarget] = useState<RegisteredUser | null>(null);
+  const [suspendStatus, setSuspendStatus] = useState<"suspended" | "blocked">("suspended");
+  const [suspendReason, setSuspendReason] = useState("");
+  const [suspendCustomReason, setSuspendCustomReason] = useState("");
+
+  const [newUser, setNewUser] = useState<{
+    firstName: string; secondName: string; lastName: string; secondLastName: string;
+    documentType: DocType; documentNumber: string; birthDate: string; email: string;
+    phone: string; pin: string; confirmPin: string; countryResidence: string;
+    countryBirth: string; currencyCode: string; currencySymbol: string;
+    address: string; motherName: string; motherPhone: string; googleEmail: string;
+  }>({
+    firstName: "", secondName: "", lastName: "", secondLastName: "",
+    documentType: "CC", documentNumber: "", birthDate: "", email: "",
+    phone: "", pin: "", confirmPin: "",
+    countryResidence: "CO", countryBirth: "CO", currencyCode: "COP", currencySymbol: "$",
+    address: "", motherName: "", motherPhone: "", googleEmail: "",
   });
   const [createError, setCreateError] = useState("");
 
@@ -89,6 +102,10 @@ export default function UsuariosScreen() {
       secondLastName: u.secondLastName,
       email: u.email,
       phone: u.phone,
+      address: u.address ?? "",
+      motherName: u.motherName ?? "",
+      motherPhone: u.motherPhone ?? "",
+      googleEmail: u.googleEmail ?? "",
       pin: u.pin,
       status: u.status ?? "active",
     });
@@ -118,10 +135,45 @@ export default function UsuariosScreen() {
     load();
   };
 
-  const toggleStatus = async (u: RegisteredUser, status: "active" | "suspended" | "blocked") => {
-    await updateUser(u.id, { status });
+  const toggleStatus = (u: RegisteredUser, status: "active" | "suspended" | "blocked") => {
+    if (status === "active") {
+      updateUser(u.id, { status: "active", suspensionReason: undefined, suspensionDate: undefined })
+        .then(() => {
+          load();
+          if (selected?.id === u.id) setSelected((p) => p ? { ...p, status: "active", suspensionReason: undefined } : p);
+        });
+    } else {
+      setSuspendTarget(u);
+      setSuspendStatus(status);
+      setSuspendReason(SUSPENSION_REASONS[0]);
+      setSuspendCustomReason("");
+      setSuspendModal(true);
+    }
+  };
+
+  const confirmSuspend = async () => {
+    if (!suspendTarget) return;
+    const finalReason = suspendReason === "Otro motivo"
+      ? (suspendCustomReason.trim() || "Sin motivo especificado")
+      : suspendReason;
+    await updateUser(suspendTarget.id, {
+      status: suspendStatus,
+      suspensionReason: finalReason,
+      suspensionDate: new Date().toISOString(),
+    });
+    if (addAuditLog) {
+      await addAuditLog(
+        suspendStatus === "suspended" ? "SUSPEND_USER" : "BLOCK_USER",
+        `${STATUS_LABEL[suspendStatus]}: ${suspendTarget.firstName} ${suspendTarget.lastName} (${suspendTarget.documentNumber}) — Motivo: ${finalReason}`,
+        suspendTarget.id
+      );
+    }
+    setSuspendModal(false);
+    setSuspendTarget(null);
     load();
-    if (selected?.id === u.id) setSelected((p) => p ? { ...p, status } : p);
+    if (selected?.id === suspendTarget.id) {
+      setSelected((p) => p ? { ...p, status: suspendStatus, suspensionReason: finalReason } : p);
+    }
   };
 
   const handleCreate = async () => {
@@ -149,6 +201,10 @@ export default function UsuariosScreen() {
       email: newUser.email,
       phone: newUser.phone,
       pin: newUser.pin,
+      address: newUser.address,
+      motherName: newUser.motherName,
+      motherPhone: newUser.motherPhone,
+      googleEmail: newUser.googleEmail,
       countryResidence: newUser.countryResidence,
       countryBirth: newUser.countryBirth,
       currencyCode: newUser.currencyCode,
@@ -163,6 +219,7 @@ export default function UsuariosScreen() {
       documentType: "CC", documentNumber: "", birthDate: "", email: "",
       phone: "", pin: "", confirmPin: "",
       countryResidence: "CO", countryBirth: "CO", currencyCode: "COP", currencySymbol: "$",
+      address: "", motherName: "", motherPhone: "", googleEmail: "",
     });
     load();
   };
@@ -238,6 +295,18 @@ export default function UsuariosScreen() {
                   <Row label="PIN" value={u.pin} secret />
                   <Row label="Registrado" value={new Date(u.createdAt).toLocaleString("es-CO")} />
                   <Row label="ID" value={u.id} />
+                  {u.suspensionReason && (
+                    <View style={styles.suspensionBox}>
+                      <Feather name="alert-triangle" size={13} color={ORANGE} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.suspensionLabel}>Motivo de {STATUS_LABEL[u.status ?? "active"].toLowerCase()}:</Text>
+                        <Text style={styles.suspensionText}>{u.suspensionReason}</Text>
+                        {u.suspensionDate && (
+                          <Text style={styles.suspensionDate}>{new Date(u.suspensionDate).toLocaleString("es-CO")}</Text>
+                        )}
+                      </View>
+                    </View>
+                  )}
 
                   <View style={styles.statusRow}>
                     <Text style={styles.statusRowLabel}>Estado:</Text>
@@ -269,6 +338,69 @@ export default function UsuariosScreen() {
         )}
         <View style={{ height: 80 }} />
       </ScrollView>
+
+      {/* SUSPEND MODAL */}
+      <Modal visible={suspendModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {suspendStatus === "suspended" ? "Suspender usuario" : "Bloquear usuario"}
+              </Text>
+              <TouchableOpacity onPress={() => setSuspendModal(false)}>
+                <Feather name="x" size={20} color={TEXTSEC} />
+              </TouchableOpacity>
+            </View>
+            {suspendTarget && (
+              <View style={styles.suspendUserInfo}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{suspendTarget.firstName[0]}{suspendTarget.lastName[0]}</Text>
+                </View>
+                <View>
+                  <Text style={styles.suspendUserName}>{suspendTarget.firstName} {suspendTarget.lastName}</Text>
+                  <Text style={styles.suspendUserDoc}>{suspendTarget.documentType} {suspendTarget.documentNumber}</Text>
+                </View>
+              </View>
+            )}
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={[styles.editLabel, { marginBottom: 10 }]}>Motivo de {suspendStatus === "suspended" ? "suspensión" : "bloqueo"} *</Text>
+              {SUSPENSION_REASONS.map((reason) => (
+                <TouchableOpacity
+                  key={reason}
+                  style={[styles.reasonBtn, suspendReason === reason && styles.reasonBtnActive]}
+                  onPress={() => setSuspendReason(reason)}
+                >
+                  <View style={[styles.reasonDot, { backgroundColor: suspendReason === reason ? YELLOW : TEXTSEC }]} />
+                  <Text style={[styles.reasonText, { color: suspendReason === reason ? YELLOW : TEXT }]}>{reason}</Text>
+                  {suspendReason === reason && <Feather name="check" size={14} color={YELLOW} />}
+                </TouchableOpacity>
+              ))}
+              {suspendReason === "Otro motivo" && (
+                <View style={{ marginTop: 8 }}>
+                  <Text style={styles.editLabel}>Describe el motivo *</Text>
+                  <TextInput
+                    style={[styles.editInput, { minHeight: 72, textAlignVertical: "top" }]}
+                    value={suspendCustomReason}
+                    onChangeText={setSuspendCustomReason}
+                    placeholder="Escribe el motivo de suspensión..."
+                    placeholderTextColor={TEXTSEC}
+                    multiline
+                  />
+                </View>
+              )}
+              <TouchableOpacity
+                style={[styles.saveBtn, { backgroundColor: suspendStatus === "suspended" ? ORANGE : RED, marginTop: 16 }]}
+                onPress={confirmSuspend}
+              >
+                <Text style={styles.saveBtnText}>
+                  {suspendStatus === "suspended" ? "Confirmar suspensión" : "Confirmar bloqueo"}
+                </Text>
+              </TouchableOpacity>
+              <View style={{ height: 24 }} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* EDIT MODAL */}
       <Modal visible={editModal} transparent animationType="slide">
@@ -343,10 +475,10 @@ export default function UsuariosScreen() {
               <EF label="Fecha nacimiento (DD/MM/AAAA) *" value={newUser.birthDate} onChange={(v) => setNewUser((p) => ({ ...p, birthDate: v }))} />
               <EF label="Email *" value={newUser.email} onChange={(v) => setNewUser((p) => ({ ...p, email: v }))} keyboard="email-address" />
               <EF label="Teléfono (10 dígitos) *" value={newUser.phone} onChange={(v) => setNewUser((p) => ({ ...p, phone: v }))} keyboard="phone-pad" maxLen={10} />
-              <EF label="Dirección de residencia" value={(newUser as any).address ?? ""} onChange={(v) => setNewUser((p) => ({ ...p, address: v } as any))} />
-              <EF label="Nombre completo de la madre" value={(newUser as any).motherName ?? ""} onChange={(v) => setNewUser((p) => ({ ...p, motherName: v } as any))} />
-              <EF label="Teléfono de la madre" value={(newUser as any).motherPhone ?? ""} onChange={(v) => setNewUser((p) => ({ ...p, motherPhone: v } as any))} keyboard="phone-pad" maxLen={10} />
-              <EF label="Email Google (opcional)" value={(newUser as any).googleEmail ?? ""} onChange={(v) => setNewUser((p) => ({ ...p, googleEmail: v } as any))} keyboard="email-address" />
+              <EF label="Dirección de residencia" value={newUser.address} onChange={(v) => setNewUser((p) => ({ ...p, address: v }))} />
+              <EF label="Nombre completo de la madre" value={newUser.motherName} onChange={(v) => setNewUser((p) => ({ ...p, motherName: v }))} />
+              <EF label="Teléfono de la madre" value={newUser.motherPhone} onChange={(v) => setNewUser((p) => ({ ...p, motherPhone: v }))} keyboard="phone-pad" maxLen={10} />
+              <EF label="Email Google (opcional)" value={newUser.googleEmail} onChange={(v) => setNewUser((p) => ({ ...p, googleEmail: v }))} keyboard="email-address" />
               <EF label="PIN (4 dígitos) *" value={newUser.pin} onChange={(v) => setNewUser((p) => ({ ...p, pin: v }))} keyboard="numeric" maxLen={4} />
               <EF label="Confirmar PIN *" value={newUser.confirmPin} onChange={(v) => setNewUser((p) => ({ ...p, confirmPin: v }))} keyboard="numeric" maxLen={4} />
               {createError ? <Text style={styles.errorText}>{createError}</Text> : null}
@@ -404,6 +536,10 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.05)" },
   rowLabel: { fontSize: 12, fontFamily: "Inter_400Regular", color: TEXTSEC },
   rowValue: { fontSize: 12, fontFamily: "Inter_500Medium", color: TEXT },
+  suspensionBox: { flexDirection: "row", gap: 8, alignItems: "flex-start", backgroundColor: ORANGE + "15", borderRadius: 10, borderWidth: 1, borderColor: ORANGE + "30", padding: 10, marginTop: 8 },
+  suspensionLabel: { fontSize: 11, fontFamily: "Inter_600SemiBold", color: ORANGE, marginBottom: 2 },
+  suspensionText: { fontSize: 12, fontFamily: "Inter_400Regular", color: TEXT },
+  suspensionDate: { fontSize: 10, fontFamily: "Inter_400Regular", color: TEXTSEC, marginTop: 2 },
   statusRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12, flexWrap: "wrap" },
   statusRowLabel: { fontSize: 12, fontFamily: "Inter_500Medium", color: TEXTSEC },
   statusBtn: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, alignItems: "center" },
@@ -418,6 +554,13 @@ const styles = StyleSheet.create({
   modalCard: { backgroundColor: "#161B2E", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, maxHeight: "92%", borderWidth: 1, borderColor: BORDER },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
   modalTitle: { fontSize: 18, fontFamily: "Inter_700Bold", color: TEXT },
+  suspendUserInfo: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#0A0E1A", borderRadius: 12, padding: 12, marginBottom: 20 },
+  suspendUserName: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: TEXT },
+  suspendUserDoc: { fontSize: 12, fontFamily: "Inter_400Regular", color: TEXTSEC },
+  reasonBtn: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#0A0E1A", borderRadius: 10, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 8 },
+  reasonBtnActive: { borderColor: YELLOW + "60", backgroundColor: YELLOW + "10" },
+  reasonDot: { width: 8, height: 8, borderRadius: 4 },
+  reasonText: { flex: 1, fontSize: 13, fontFamily: "Inter_400Regular" },
   editLabel: { fontSize: 12, fontFamily: "Inter_500Medium", color: TEXTSEC, marginBottom: 6 },
   editInput: { backgroundColor: "#0F1320", borderRadius: 10, borderWidth: 1, borderColor: BORDER, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, fontFamily: "Inter_400Regular", color: TEXT },
   saveBtn: { backgroundColor: YELLOW, borderRadius: 12, paddingVertical: 14, alignItems: "center", marginTop: 8, marginBottom: 24 },
