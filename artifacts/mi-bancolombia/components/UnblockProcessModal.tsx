@@ -248,8 +248,8 @@ function TaxCertificatePanel({
         setRadicado(step.radicadoNumber);
         setActiveTab("manual");
       } else {
-        const fakeRad = `2024-${Math.floor(1000000 + Math.random() * 9000000)}`;
-        setRadicado(fakeRad);
+        const generatedRad = `2024-${Math.floor(1000000 + Math.random() * 9000000)}`;
+        setRadicado(generatedRad);
         setActiveTab("manual");
       }
     }, 2000);
@@ -271,8 +271,8 @@ function TaxCertificatePanel({
               if (step.radicadoNumber) {
                 setRadicado(step.radicadoNumber);
               } else {
-                const fakeRad = `2024-${Math.floor(1000000 + Math.random() * 9000000)}`;
-                setRadicado(fakeRad);
+                const generatedRad = `2024-${Math.floor(1000000 + Math.random() * 9000000)}`;
+                setRadicado(generatedRad);
               }
               setActiveTab("manual");
             }, 1800);

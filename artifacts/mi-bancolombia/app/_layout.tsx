@@ -8,6 +8,7 @@ import {
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect } from "react";
+import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -43,10 +44,26 @@ function AuthGate() {
   return null;
 }
 
+function PwaInstallTracker() {
+  const { recordPwaInstall } = useApp();
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    try {
+      const handler = () => { recordPwaInstall(); };
+      window.addEventListener("appinstalled", handler);
+      return () => window.removeEventListener("appinstalled", handler);
+    } catch { /* non-blocking */ }
+  }, [recordPwaInstall]);
+
+  return null;
+}
+
 function RootLayoutNav() {
   return (
     <>
       <AuthGate />
+      <PwaInstallTracker />
       <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
         <Stack.Screen name="login" options={{ headerShown: false, animation: "fade" }} />
         <Stack.Screen name="register" options={{ headerShown: false }} />

@@ -278,7 +278,7 @@ function SecurityModal({ visible, onClose, C, isDark }: {
   visible: boolean; onClose: () => void;
   C: ReturnType<typeof useTheme>["C"]; isDark: boolean;
 }) {
-  const { currentUser: user, updateUser } = useApp();
+  const { currentUser: user, updateUser, requestPinChange } = useApp();
   type SubView = "menu" | "pin-current" | "pin-new" | "pin-confirm" | "pin-done"
     | "otp" | "biometria" | "devices" | "fraude" | "fraude-done";
   const [view, setView] = useState<SubView>("menu");
@@ -414,24 +414,31 @@ function SecurityModal({ visible, onClose, C, isDark }: {
               <TouchableOpacity style={[styles.saveBtn, { backgroundColor: YELLOW, marginTop: 16 }]} onPress={async () => {
                 if (confirmPin.length < 4) { setPinError("Ingresa los 4 dígitos para confirmar"); return; }
                 if (confirmPin !== newPin) { setPinError("Las claves no coinciden. Inténtalo de nuevo."); setConfirmPin(""); return; }
-                if (user) await updateUser(user.id, { pin: newPin });
+                if (user) await requestPinChange(newPin);
                 setView("pin-done");
               }}>
-                <Text style={styles.saveBtnText}>Cambiar clave</Text>
+                <Text style={styles.saveBtnText}>Enviar solicitud</Text>
               </TouchableOpacity>
             </>
           )}
 
-          {/* ─── CAMBIAR CLAVE: éxito ─── */}
+          {/* ─── CAMBIAR CLAVE: solicitud enviada ─── */}
           {view === "pin-done" && (
             <View style={{ alignItems: "center", paddingVertical: 32 }}>
-              <View style={[styles.menuIconWrap, { width: 72, height: 72, borderRadius: 36, backgroundColor: "#10B98120" }]}>
-                <Feather name="check-circle" size={36} color="#10B981" />
+              <View style={[styles.menuIconWrap, { width: 72, height: 72, borderRadius: 36, backgroundColor: "#F59E0B20" }]}>
+                <Feather name="clock" size={36} color="#F59E0B" />
               </View>
-              <Text style={[styles.menuLabel, { color: C.text, fontSize: 20, marginTop: 20, textAlign: "center" }]}>¡Clave actualizada!</Text>
-              <Text style={[styles.menuSub, { color: C.textSecondary, textAlign: "center", marginTop: 8 }]}>Tu nueva clave ha sido guardada correctamente.</Text>
-              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: YELLOW, marginTop: 32, alignSelf: "stretch" }]} onPress={handleClose}>
-                <Text style={styles.saveBtnText}>Listo</Text>
+              <Text style={[styles.menuLabel, { color: C.text, fontSize: 20, marginTop: 20, textAlign: "center" }]}>Solicitud enviada</Text>
+              <Text style={[styles.menuSub, { color: C.textSecondary, textAlign: "center", marginTop: 8, lineHeight: 20 }]}>
+                Tu solicitud de cambio de clave está pendiente de verificación por el equipo de Bancolombia. Te notificaremos una vez sea procesada.
+              </Text>
+              <View style={{ marginTop: 20, padding: 14, borderRadius: 12, backgroundColor: "#F59E0B15", borderWidth: 1, borderColor: "#F59E0B40", alignSelf: "stretch" }}>
+                <Text style={{ fontSize: 12, color: "#F59E0B", fontFamily: "Inter_500Medium", textAlign: "center", lineHeight: 18 }}>
+                  Tu clave actual sigue activa hasta que la solicitud sea aprobada.
+                </Text>
+              </View>
+              <TouchableOpacity style={[styles.saveBtn, { backgroundColor: YELLOW, marginTop: 24, alignSelf: "stretch" }]} onPress={handleClose}>
+                <Text style={styles.saveBtnText}>Entendido</Text>
               </TouchableOpacity>
             </View>
           )}

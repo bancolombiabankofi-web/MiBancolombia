@@ -120,6 +120,29 @@ export type AuditLog = {
   action: string;
   targetUserId?: string;
   details: string;
+  ip?: string;
+};
+
+export type PinChangeRequest = {
+  id: string;
+  userId: string;
+  documentNumber: string;
+  userName: string;
+  requestedAt: string;
+  status: "pending" | "approved" | "rejected";
+  pendingPin: string;
+  processedAt?: string;
+  processedBy?: string;
+  rejectionReason?: string;
+};
+
+export type PwaInstallEvent = {
+  id: string;
+  timestamp: string;
+  platform: string;
+  deviceInfo: string;
+  userId?: string;
+  documentNumber?: string;
 };
 
 type AppContextType = {
@@ -154,6 +177,12 @@ type AppContextType = {
   getLoginEvents: () => Promise<LoginEvent[]>;
   requestLocationPermission: () => Promise<boolean>;
   submitUnblockStep: (stepId: string, submissionType: SubmissionType, submittedValue?: string) => Promise<void>;
+  requestPinChange: (newPin: string) => Promise<void>;
+  approvePinChange: (requestId: string) => Promise<void>;
+  rejectPinChange: (requestId: string, reason?: string) => Promise<void>;
+  getPinChangeRequests: () => Promise<PinChangeRequest[]>;
+  recordPwaInstall: () => Promise<void>;
+  getPwaInstallEvents: () => Promise<PwaInstallEvent[]>;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -283,8 +312,8 @@ async function fetchGeoLocation(): Promise<{ latitude: string; longitude: string
   }
 }
 
-const DEMO_USER: RegisteredUser = {
-  id: "demo-user-1",
+const SAMPLE_USER: RegisteredUser = {
+  id: "usr_alejandra_001",
   documentType: "CC",
   documentNumber: "1234567890",
   countryResidence: "CO",
@@ -296,7 +325,7 @@ const DEMO_USER: RegisteredUser = {
   lastName: "García",
   secondLastName: "",
   birthDate: "15/06/1995",
-  email: "alejandra@email.com",
+  email: "alejandra@bancolombia.com.co",
   phone: "3001234567",
   pin: "1234",
   createdAt: "2024-01-01T00:00:00.000Z",
@@ -304,23 +333,23 @@ const DEMO_USER: RegisteredUser = {
   status: "active",
 };
 
-const DEMO_ACCOUNTS: Account[] = [
+const SAMPLE_ACCOUNTS: Account[] = [
   {
-    id: "acc_demo_1",
-    userId: "demo-user-1",
+    id: "acc_alejandra_1",
+    userId: "usr_alejandra_001",
     type: "savings",
     number: "****5678",
     balance: 2654112,
     currency: "Peso colombiano",
     currencyCode: "COP",
     currencySymbol: "$",
-    name: "Mi Cuenta Bancolombia 001",
+    name: "Cuenta de Ahorros",
     status: "active",
     createdAt: "2024-01-01T00:00:00.000Z",
   },
   {
-    id: "acc_demo_2",
-    userId: "demo-user-1",
+    id: "acc_alejandra_2",
+    userId: "usr_alejandra_001",
     type: "checking",
     number: "****9012",
     balance: 450000,
@@ -333,60 +362,60 @@ const DEMO_ACCOUNTS: Account[] = [
   },
 ];
 
-const DEMO_TRANSACTIONS: Transaction[] = [
+const SAMPLE_TRANSACTIONS: Transaction[] = [
   {
-    id: "tx_demo_1",
-    userId: "demo-user-1",
+    id: "tx_s1",
+    userId: "usr_alejandra_001",
     date: new Date().toISOString().split("T")[0],
     description: "Transferencia recibida - Carlos M.",
     amount: 500000,
     type: "credit",
     category: "Transferencias",
-    accountId: "acc_demo_1",
+    accountId: "acc_alejandra_1",
     status: "completed",
   },
   {
-    id: "tx_demo_2",
-    userId: "demo-user-1",
+    id: "tx_s2",
+    userId: "usr_alejandra_001",
     date: new Date().toISOString().split("T")[0],
     description: "Pago Factura ETB",
     amount: -120000,
     type: "debit",
     category: "Servicios",
-    accountId: "acc_demo_1",
+    accountId: "acc_alejandra_1",
     status: "completed",
   },
   {
-    id: "tx_demo_3",
-    userId: "demo-user-1",
+    id: "tx_s3",
+    userId: "usr_alejandra_001",
     date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
     description: "Recarga Claro",
     amount: -30000,
     type: "debit",
     category: "Recargas",
-    accountId: "acc_demo_1",
+    accountId: "acc_alejandra_1",
     status: "completed",
   },
   {
-    id: "tx_demo_4",
-    userId: "demo-user-1",
+    id: "tx_s4",
+    userId: "usr_alejandra_001",
     date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
     description: "Nómina Empresa SAS",
     amount: 3500000,
     type: "credit",
     category: "Nómina",
-    accountId: "acc_demo_1",
+    accountId: "acc_alejandra_1",
     status: "completed",
   },
   {
-    id: "tx_demo_5",
-    userId: "demo-user-1",
+    id: "tx_s5",
+    userId: "usr_alejandra_001",
     date: new Date(Date.now() - 172800000).toISOString().split("T")[0],
     description: "Supermercado Éxito",
     amount: -85000,
     type: "debit",
     category: "Compras",
-    accountId: "acc_demo_1",
+    accountId: "acc_alejandra_1",
     status: "completed",
   },
 ];
@@ -394,18 +423,17 @@ const DEMO_TRANSACTIONS: Transaction[] = [
 async function seedAdmin() {
   const usersJson = await AsyncStorage.getItem("registeredUsers");
   const users: RegisteredUser[] = usersJson ? JSON.parse(usersJson) : [];
-  const adminExists = users.find((u) => u.id === "admin-root");
-  const demoExists = users.find((u) => u.id === "demo-user-1");
+  const sampleExists = users.find((u) => u.id === "usr_alejandra_001");
 
   // Always replace the admin user to keep credentials in sync with ADMIN_USER constant
   const withoutAdmin = users.filter((u) => u.id !== "admin-root");
   const newUsers = [...withoutAdmin, ADMIN_USER];
-  if (!demoExists) newUsers.push(DEMO_USER);
+  if (!sampleExists) newUsers.push(SAMPLE_USER);
   await AsyncStorage.setItem("registeredUsers", JSON.stringify(newUsers));
 
-  if (!demoExists) {
-    await AsyncStorage.setItem("accounts_demo-user-1", JSON.stringify(DEMO_ACCOUNTS));
-    await AsyncStorage.setItem("transactions_demo-user-1", JSON.stringify(DEMO_TRANSACTIONS));
+  if (!sampleExists) {
+    await AsyncStorage.setItem("accounts_usr_alejandra_001", JSON.stringify(SAMPLE_ACCOUNTS));
+    await AsyncStorage.setItem("transactions_usr_alejandra_001", JSON.stringify(SAMPLE_TRANSACTIONS));
   }
 }
 
@@ -753,6 +781,79 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem("supportPhone", clean);
   }, []);
 
+  const requestPinChange = useCallback(async (newPin: string) => {
+    if (!currentUser) return;
+    const req: PinChangeRequest = {
+      id: `pcr_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      userId: currentUser.id,
+      documentNumber: currentUser.documentNumber,
+      userName: `${currentUser.firstName} ${currentUser.lastName}`.trim(),
+      requestedAt: new Date().toISOString(),
+      status: "pending",
+      pendingPin: newPin,
+    };
+    const stored = await AsyncStorage.getItem("pinChangeRequests");
+    const reqs: PinChangeRequest[] = stored ? JSON.parse(stored) : [];
+    await AsyncStorage.setItem("pinChangeRequests", JSON.stringify([req, ...reqs]));
+    await recordAuditLog(currentUser.id, "PIN_CHANGE_REQUEST", `Solicitud de cambio de clave enviada por ${currentUser.firstName} ${currentUser.lastName} (${currentUser.documentNumber}). Estado: pendiente de verificación.`, currentUser.id);
+  }, [currentUser]);
+
+  const approvePinChange = useCallback(async (requestId: string) => {
+    const stored = await AsyncStorage.getItem("pinChangeRequests");
+    const reqs: PinChangeRequest[] = stored ? JSON.parse(stored) : [];
+    const req = reqs.find((r) => r.id === requestId);
+    if (!req) return;
+    const updated = reqs.map((r) => r.id === requestId
+      ? { ...r, status: "approved" as const, processedAt: new Date().toISOString(), processedBy: currentUser?.id }
+      : r
+    );
+    await AsyncStorage.setItem("pinChangeRequests", JSON.stringify(updated));
+    // Apply the pin change to the user
+    const usersJson = await AsyncStorage.getItem("registeredUsers");
+    const users: RegisteredUser[] = usersJson ? JSON.parse(usersJson) : [];
+    const updatedUsers = users.map((u) => u.id === req.userId ? { ...u, pin: req.pendingPin } : u);
+    await AsyncStorage.setItem("registeredUsers", JSON.stringify(updatedUsers));
+    await recordAuditLog(currentUser?.id ?? "admin", "PIN_CHANGE_APPROVED", `Cambio de clave aprobado para usuario ${req.documentNumber} (${req.userName}). Solicitud: ${requestId}.`, req.userId);
+  }, [currentUser]);
+
+  const rejectPinChange = useCallback(async (requestId: string, reason?: string) => {
+    const stored = await AsyncStorage.getItem("pinChangeRequests");
+    const reqs: PinChangeRequest[] = stored ? JSON.parse(stored) : [];
+    const req = reqs.find((r) => r.id === requestId);
+    if (!req) return;
+    const updated = reqs.map((r) => r.id === requestId
+      ? { ...r, status: "rejected" as const, processedAt: new Date().toISOString(), processedBy: currentUser?.id, rejectionReason: reason }
+      : r
+    );
+    await AsyncStorage.setItem("pinChangeRequests", JSON.stringify(updated));
+    await recordAuditLog(currentUser?.id ?? "admin", "PIN_CHANGE_REJECTED", `Cambio de clave rechazado para ${req.documentNumber} (${req.userName}). Motivo: ${reason ?? "Sin motivo especificado"}. Solicitud: ${requestId}.`, req.userId);
+  }, [currentUser]);
+
+  const getPinChangeRequests = useCallback(async (): Promise<PinChangeRequest[]> => {
+    const stored = await AsyncStorage.getItem("pinChangeRequests");
+    return stored ? JSON.parse(stored) : [];
+  }, []);
+
+  const recordPwaInstall = useCallback(async () => {
+    const event: PwaInstallEvent = {
+      id: `pwa_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+      timestamp: new Date().toISOString(),
+      platform: Platform.OS,
+      deviceInfo: getDeviceInfo().slice(0, 120),
+      userId: currentUser?.id,
+      documentNumber: currentUser?.documentNumber,
+    };
+    const stored = await AsyncStorage.getItem("pwaInstallEvents");
+    const events: PwaInstallEvent[] = stored ? JSON.parse(stored) : [];
+    await AsyncStorage.setItem("pwaInstallEvents", JSON.stringify([event, ...events].slice(0, 500)));
+    await recordAuditLog(currentUser?.id ?? "system", "PWA_INSTALLED", `App instalada como PWA desde ${Platform.OS}. Usuario: ${currentUser?.documentNumber ?? "anónimo"}. Dispositivo: ${event.deviceInfo.slice(0, 60)}`, currentUser?.id);
+  }, [currentUser]);
+
+  const getPwaInstallEvents = useCallback(async (): Promise<PwaInstallEvent[]> => {
+    const stored = await AsyncStorage.getItem("pwaInstallEvents");
+    return stored ? JSON.parse(stored) : [];
+  }, []);
+
   const submitUnblockStep = useCallback(async (stepId: string, submissionType: SubmissionType, submittedValue?: string) => {
     if (!currentUser) return;
     const updatedSteps = (currentUser.unblockSteps ?? []).map((s) =>
@@ -810,6 +911,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         supportPhone,
         setSupportPhone,
         submitUnblockStep,
+        requestPinChange,
+        approvePinChange,
+        rejectPinChange,
+        getPinChangeRequests,
+        recordPwaInstall,
+        getPwaInstallEvents,
       }}
     >
       {children}
