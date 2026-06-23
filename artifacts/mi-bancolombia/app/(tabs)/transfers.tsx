@@ -17,6 +17,22 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { formatBalance, BANKS_BY_CURRENCY } from "@/constants/countries";
 
+const RESTRICTED_STATUSES = ["suspended", "blocked"] as const;
+
+function useMoneyRestriction() {
+  const { currentUser } = useApp();
+  const isRestricted = RESTRICTED_STATUSES.includes(currentUser?.status as any);
+  const showRestrictionAlert = () => {
+    const isBlocked = currentUser?.status === "blocked";
+    Alert.alert(
+      isBlocked ? "Cuenta bloqueada" : "Cuenta en revisión",
+      `Tu cuenta está ${isBlocked ? "bloqueada" : "en revisión"} y no puede realizar movimientos de dinero en este momento.\n\nPuedes iniciar el proceso de desbloqueo desde la pantalla de inicio.`,
+      [{ text: "Entendido" }]
+    );
+  };
+  return { isRestricted, showRestrictionAlert };
+}
+
 const YELLOW = "#FDDA24";
 const { width: SCREEN_W } = Dimensions.get("window");
 const COL = (SCREEN_W - 44) / 3;

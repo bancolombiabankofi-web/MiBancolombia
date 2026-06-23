@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import { useTheme } from "@/hooks/useTheme";
 import { formatBalance, maskedBalance } from "@/constants/countries";
+import { UnblockProcessModal } from "@/components/UnblockProcessModal";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const YELLOW = "#FDDA24";
@@ -381,7 +382,7 @@ function AccountsSection({ isDark, C }: { isDark: boolean; C: any }) {
 
 /* ══════════════════════════════════════════════════════════════ */
 export default function HomeScreen() {
-  const { userName, logout, supportPhone } = useApp();
+  const { userName, logout, supportPhone, currentUser } = useApp();
   const { C, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -393,6 +394,7 @@ export default function HomeScreen() {
   const [showHelp, setShowHelp]         = useState(false);
   const [showClave, setShowClave]       = useState(false);
   const [claveCode, setClaveCode]       = useState("");
+  const [showUnblock, setShowUnblock]   = useState(false);
 
   const handleLogoutConfirm = async () => {
     setShowLogout(false);
@@ -466,36 +468,47 @@ export default function HomeScreen() {
         const color = isBlocked ? "#EF4444" : "#F59E0B";
         const steps = currentUser.unblockSteps ?? [];
         const docs = currentUser.requiredDocuments ?? [];
+        const completedCount = steps.filter((s) => s.completed).length;
         return (
-          <View style={{ backgroundColor: color + "15", borderLeftWidth: 4, borderLeftColor: color, marginHorizontal: 16, marginTop: 12, borderRadius: 12, padding: 14 }}>
+          <View style={{ backgroundColor: color + "12", borderLeftWidth: 4, borderLeftColor: color, marginHorizontal: 16, marginTop: 12, borderRadius: 12, padding: 14 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <Feather name={isBlocked ? "lock" : "alert-triangle"} size={16} color={color} />
               <Text style={{ fontSize: 14, fontWeight: "700", color, fontFamily: "Inter_700Bold" }}>
                 {isBlocked ? "Cuenta bloqueada" : "Cuenta en revisión"}
               </Text>
             </View>
-            <Text style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#6B7280", fontFamily: "Inter_400Regular", lineHeight: 17, marginBottom: currentUser.suspensionReason ? 8 : 0 }}>
+            <Text style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.6)" : "#6B7280", fontFamily: "Inter_400Regular", lineHeight: 17, marginBottom: currentUser.suspensionReason ? 6 : 0 }}>
               Puedes consultar tu saldo e información. Los movimientos de dinero están temporalmente restringidos.
             </Text>
             {currentUser.suspensionReason ? (
-              <Text style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.5)" : "#9CA3AF", fontFamily: "Inter_400Regular" }}>
+              <Text style={{ fontSize: 12, color: isDark ? "rgba(255,255,255,0.45)" : "#9CA3AF", fontFamily: "Inter_400Regular", marginBottom: 4 }}>
                 Motivo: {currentUser.suspensionReason}
               </Text>
             ) : null}
-            {(docs.length > 0 || steps.length > 0) && (
-              <View style={{ marginTop: 10, gap: 4 }}>
-                {docs.length > 0 && (
-                  <Text style={{ fontSize: 12, color, fontWeight: "700" }}>
-                    📄 Documentos requeridos: {docs.length}
-                  </Text>
-                )}
-                {steps.length > 0 && (
-                  <Text style={{ fontSize: 12, color, fontWeight: "700" }}>
-                    📋 Pasos a seguir: {steps.length} — Ve a Transacciones para ver el detalle
-                  </Text>
-                )}
+            {steps.length > 0 && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                <Feather name="list" size={11} color={color} />
+                <Text style={{ fontSize: 12, color, fontFamily: "Inter_500Medium" }}>
+                  {completedCount} de {steps.length} pasos completados
+                </Text>
               </View>
             )}
+            {docs.length > 0 && steps.length === 0 && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                <Feather name="file-text" size={11} color={color} />
+                <Text style={{ fontSize: 12, color, fontFamily: "Inter_500Medium" }}>
+                  {docs.length} documento{docs.length !== 1 ? "s" : ""} requerido{docs.length !== 1 ? "s" : ""}
+                </Text>
+              </View>
+            )}
+            <TouchableOpacity
+              style={{ backgroundColor: "#22C55E", borderRadius: 10, paddingVertical: 11, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, marginTop: 12 }}
+              onPress={() => setShowUnblock(true)}
+              activeOpacity={0.82}
+            >
+              <Feather name="unlock" size={15} color="#FFFFFF" />
+              <Text style={{ fontSize: 13, fontWeight: "700", color: "#FFFFFF", fontFamily: "Inter_700Bold" }}>Adelantar proceso de desbloqueo</Text>
+            </TouchableOpacity>
           </View>
         );
       })()}
@@ -559,6 +572,7 @@ export default function HomeScreen() {
       <NotificationsModal visible={showNotifs} onClose={() => setShowNotifs(false)} C={C} isDark={isDark} />
       <HelpModal visible={showHelp} onClose={() => setShowHelp(false)} C={C} />
       <ClaveModal visible={showClave} onClose={() => setShowClave(false)} C={C} code={claveCode} />
+      <UnblockProcessModal visible={showUnblock} onClose={() => setShowUnblock(false)} isDark={isDark} />
     </View>
   );
 }

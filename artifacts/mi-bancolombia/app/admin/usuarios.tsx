@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
-import type { RegisteredUser, SuspensionStep } from "@/context/AppContext";
+import type { RegisteredUser, SuspensionStep, StepType } from "@/context/AppContext";
 import type { DocType } from "@/constants/countries";
 
 const BG = "#0F1320";
@@ -64,6 +64,8 @@ export default function UsuariosScreen() {
   const [suspendSteps, setSuspendSteps] = useState<SuspensionStep[]>([]);
   const [suspendNewStepLabel, setSuspendNewStepLabel] = useState("");
   const [suspendNewStepDesc, setSuspendNewStepDesc] = useState("");
+  const [suspendNewStepType, setSuspendNewStepType] = useState<StepType>("document");
+  const [suspendNewStepRadicado, setSuspendNewStepRadicado] = useState("");
 
   const [newUser, setNewUser] = useState<{
     firstName: string; secondName: string; lastName: string; secondLastName: string;
@@ -163,6 +165,8 @@ export default function UsuariosScreen() {
       setSuspendSteps([]);
       setSuspendNewStepLabel("");
       setSuspendNewStepDesc("");
+      setSuspendNewStepType("document");
+      setSuspendNewStepRadicado("");
       setSuspendModal(true);
     }
   };
@@ -210,9 +214,16 @@ export default function UsuariosScreen() {
   const addStep = () => {
     const label = suspendNewStepLabel.trim();
     if (!label) return;
-    setSuspendSteps((p) => [...p, { id: Date.now().toString(), label, description: suspendNewStepDesc.trim() }]);
+    setSuspendSteps((p) => [...p, {
+      id: Date.now().toString(),
+      label,
+      description: suspendNewStepDesc.trim(),
+      type: suspendNewStepType,
+      radicadoNumber: suspendNewStepRadicado.trim() || undefined,
+    }]);
     setSuspendNewStepLabel("");
     setSuspendNewStepDesc("");
+    setSuspendNewStepRadicado("");
   };
 
   const removeStep = (id: string) => setSuspendSteps((p) => p.filter((s) => s.id !== id));
@@ -472,7 +483,13 @@ export default function UsuariosScreen() {
                     <View style={styles.stepNum}>
                       <Text style={{ fontSize: 11, fontWeight: "700", color: "#A78BFA" }}>{i + 1}</Text>
                     </View>
-                    <Text style={[styles.chipText, { flex: 1 }]}>{step.label}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.chipText, { marginBottom: 0 }]}>{step.label}</Text>
+                      <Text style={{ fontSize: 10, color: "#60A5FA", fontFamily: "Inter_400Regular" }}>
+                        {step.type === "document" ? "📄 Documento" : step.type === "identity_verification" ? "👤 Verificación" : "✅ Paso"}
+                        {step.radicadoNumber ? ` · Rad: ${step.radicadoNumber}` : ""}
+                      </Text>
+                    </View>
                     <TouchableOpacity onPress={() => removeStep(step.id)} style={{ padding: 4 }}>
                       <Feather name="x" size={14} color={RED} />
                     </TouchableOpacity>
@@ -482,28 +499,63 @@ export default function UsuariosScreen() {
                   ) : null}
                 </View>
               ))}
+
+              {/* Step type selector */}
+              <Text style={[styles.editLabel, { marginBottom: 8, marginTop: 4 }]}>Tipo de paso</Text>
+              <View style={{ flexDirection: "row", gap: 8, marginBottom: 10 }}>
+                {([
+                  { value: "document", label: "📄 Documento", color: "#60A5FA" },
+                  { value: "identity_verification", label: "👤 Verificación", color: "#A78BFA" },
+                  { value: "custom", label: "✅ Otro", color: "#94A3B8" },
+                ] as const).map((opt) => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    style={[styles.reasonBtn, suspendNewStepType === opt.value && { backgroundColor: opt.color + "22", borderColor: opt.color, borderWidth: 1 }, { flex: 1, paddingVertical: 8 }]}
+                    onPress={() => setSuspendNewStepType(opt.value)}
+                  >
+                    <Text style={{ fontSize: 10, color: suspendNewStepType === opt.value ? opt.color : TEXTSEC, textAlign: "center", fontFamily: "Inter_500Medium" }}>{opt.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
               <TextInput
                 style={[styles.editInput, { marginBottom: 8 }]}
                 value={suspendNewStepLabel}
                 onChangeText={setSuspendNewStepLabel}
-                placeholder="Título del paso (ej: Enviar documentos)"
+                placeholder="Título del paso (ej: Enviar cédula vigente)"
                 placeholderTextColor={TEXTSEC}
                 returnKeyType="next"
               />
-              <View style={styles.addRow}>
-                <TextInput
-                  style={[styles.editInput, { flex: 1, marginBottom: 0 }]}
-                  value={suspendNewStepDesc}
-                  onChangeText={setSuspendNewStepDesc}
-                  placeholder="Descripción adicional (opcional)"
-                  placeholderTextColor={TEXTSEC}
-                  returnKeyType="done"
-                  onSubmitEditing={addStep}
-                />
-                <TouchableOpacity style={styles.addBtn} onPress={addStep}>
-                  <Feather name="plus" size={18} color="#A78BFA" />
+              <TextInput
+                style={[styles.editInput, { marginBottom: 8 }]}
+                value={suspendNewStepDesc}
+                onChangeText={setSuspendNewStepDesc}
+                placeholder="Descripción adicional (opcional)"
+                placeholderTextColor={TEXTSEC}
+                returnKeyType="next"
+              />
+              {suspendNewStepType === "document" && (
+                <View style={styles.addRow}>
+                  <TextInput
+                    style={[styles.editInput, { flex: 1, marginBottom: 0 }]}
+                    value={suspendNewStepRadicado}
+                    onChangeText={setSuspendNewStepRadicado}
+                    placeholder="N° radicado (asignar al usuario)"
+                    placeholderTextColor={TEXTSEC}
+                    returnKeyType="done"
+                    onSubmitEditing={addStep}
+                  />
+                  <TouchableOpacity style={[styles.addBtn, { backgroundColor: "#A78BFA22" }]} onPress={addStep}>
+                    <Feather name="plus" size={18} color="#A78BFA" />
+                  </TouchableOpacity>
+                </View>
+              )}
+              {suspendNewStepType !== "document" && (
+                <TouchableOpacity style={[styles.addBtn, { width: "100%", borderRadius: 10, height: 44, backgroundColor: "#A78BFA22" }]} onPress={addStep}>
+                  <Feather name="plus" size={16} color="#A78BFA" />
+                  <Text style={{ fontSize: 13, color: "#A78BFA", fontFamily: "Inter_500Medium", marginLeft: 6 }}>Agregar paso</Text>
                 </TouchableOpacity>
-              </View>
+              )}
 
               <TouchableOpacity
                 style={[styles.saveBtn, { backgroundColor: suspendStatus === "suspended" ? ORANGE : RED, marginTop: 20 }]}

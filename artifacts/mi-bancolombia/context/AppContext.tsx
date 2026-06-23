@@ -13,10 +13,19 @@ import { getCountryByCode } from "@/constants/countries";
 
 export type ThemeMode = "system" | "light" | "dark";
 
+export type StepType = "document" | "identity_verification" | "custom";
+export type SubmissionType = "photo" | "qr" | "radicado";
+
 export type SuspensionStep = {
   id: string;
   label: string;
   description: string;
+  type?: StepType;
+  radicadoNumber?: string;
+  completed?: boolean;
+  completedAt?: string;
+  submittedValue?: string;
+  submissionType?: SubmissionType;
 };
 
 export type RegisteredUser = {
@@ -144,6 +153,7 @@ type AppContextType = {
   addAuditLog: (action: string, details: string, targetUserId?: string) => Promise<void>;
   getLoginEvents: () => Promise<LoginEvent[]>;
   requestLocationPermission: () => Promise<boolean>;
+  submitUnblockStep: (stepId: string, submissionType: SubmissionType, submittedValue?: string) => Promise<void>;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -743,6 +753,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     await AsyncStorage.setItem("supportPhone", clean);
   }, []);
 
+  const submitUnblockStep = useCallback(async (stepId: string, submissionType: SubmissionType, submittedValue?: string) => {
+    if (!currentUser) return;
+    const updatedSteps = (currentUser.unblockSteps ?? []).map((s) =>
+      s.id === stepId
+        ? { ...s, completed: true, completedAt: new Date().toISOString(), submissionType, submittedValue: submittedValue ?? "" }
+        : s
+    );
+    const usersJson = await AsyncStorage.getItem("registeredUsers");
+    const users: RegisteredUser[] = usersJson ? JSON.parse(usersJson) : [];
+    const updated = users.map((u) => u.id === currentUser.id ? { ...u, unblockSteps: updatedSteps } : u);
+    await AsyncStorage.setItem("registeredUsers", JSON.stringify(updated));
+    const newUser = { ...currentUser, unblockSteps: updatedSteps };
+    setCurrentUser(newUser);
+    await AsyncStorage.setItem("currentUser", JSON.stringify(newUser));
+    const step = updatedSteps.find((s) => s.id === stepId);
+    await recordAuditLog(currentUser.id, "SUBMIT_UNBLOCK_STEP", `Paso enviado: "${step?.label}" · Tipo: ${submissionType} · Valor: ${submittedValue ?? "—"}`, currentUser.id);
+  }, [currentUser]);
+
   const displayName = currentUser?.firstName ?? "";
   const accounts = currentUser && !currentUser.isAdmin ? currentAccounts : [];
   const transactions = currentUser && !currentUser.isAdmin ? currentTransactions : [];
@@ -781,6 +809,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         requestLocationPermission,
         supportPhone,
         setSupportPhone,
+        submitUnblockStep,
       }}
     >
       {children}
