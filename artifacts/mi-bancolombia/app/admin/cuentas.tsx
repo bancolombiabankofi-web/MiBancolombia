@@ -2,7 +2,6 @@ import { Feather } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -41,7 +40,7 @@ type AccountWithUser = Account & { userName: string; userDoc: string; userEmail:
 export default function CuentasScreen() {
   const { getAllAccounts, getAllUsers, updateAccount, adminAddBalance, addAuditLog } = useApp();
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 60 : insets.top;
+  const topPad = insets.top > 0 ? insets.top : 20;
 
   const [accounts, setAccounts] = useState<AccountWithUser[]>([]);
   const [search, setSearch] = useState("");

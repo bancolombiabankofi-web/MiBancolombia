@@ -4,7 +4,6 @@ import {
   Alert,
   Linking,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Switch,
@@ -824,7 +823,7 @@ function SectionCard({ title, C, children }: { title: string; C: ReturnType<type
 ══════════════════════════════════════════════════════════════ */
 export default function AjustesScreen() {
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 60 : insets.top;
+  const topPad = insets.top > 0 ? insets.top : 20;
   const { currentUser, logout, themeMode, setThemeMode, accounts, cards, updateUser, reloadUserData } = useApp();
   const { C, isDark } = useTheme();
 

@@ -38,8 +38,8 @@ export default function LoginScreen() {
   const { C, isDark } = useTheme();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 60 : insets.top;
-  const bottomPad = Platform.OS === "web" ? 40 : insets.bottom + 20;
+  const topPad = insets.top > 0 ? insets.top : 20;
+  const bottomPad = insets.bottom > 0 ? insets.bottom + 16 : 32;
 
   const filteredCountries = COUNTRIES.filter((c) =>
     c.name.toLowerCase().includes(countrySearch.toLowerCase())
@@ -166,7 +166,7 @@ export default function LoginScreen() {
                 </View>
               )}
 
-              <Text style={[styles.label, { marginTop: 16, color: subColor }]}>Tipo de documento</Text>
+              <Text style={[styles.label, { marginTop: 12, color: subColor }]}>Tipo de documento</Text>
               <TouchableOpacity
                 style={[styles.picker, { borderColor, backgroundColor: inputBg }]}
                 onPress={() => { setShowDocPicker(!showDocPicker); setShowCountryPicker(false); }}
@@ -193,7 +193,7 @@ export default function LoginScreen() {
                 </View>
               )}
 
-              <Text style={[styles.label, { marginTop: 16, color: subColor }]}>
+              <Text style={[styles.label, { marginTop: 12, color: subColor }]}>
                 Número de {DOC_TYPE_LABELS[docType]}
               </Text>
               <TextInput
@@ -286,23 +286,23 @@ const styles = StyleSheet.create({
   container: { flexGrow: 1 },
   heroSection: {
     alignItems: "center",
-    paddingTop: 40,
-    paddingBottom: 32,
+    paddingTop: 24,
+    paddingBottom: 20,
     paddingHorizontal: 24,
     borderBottomWidth: 1,
   },
   appIcon: {
-    width: 80, height: 80, borderRadius: 20, marginBottom: 20,
+    width: 62, height: 62, borderRadius: 16, marginBottom: 14,
   },
   heroTitle: {
-    fontSize: 26, fontWeight: "700", fontFamily: "Inter_700Bold",
-    textAlign: "center", letterSpacing: -0.5, marginBottom: 8,
+    fontSize: 22, fontWeight: "700", fontFamily: "Inter_700Bold",
+    textAlign: "center", letterSpacing: -0.4, marginBottom: 6,
   },
   heroSub: {
-    fontSize: 15, fontFamily: "Inter_400Regular", textAlign: "center",
+    fontSize: 14, fontFamily: "Inter_400Regular", textAlign: "center",
   },
-  form: { padding: 24 },
-  label: { fontSize: 13, fontFamily: "Inter_500Medium", marginBottom: 8 },
+  form: { padding: 20 },
+  label: { fontSize: 13, fontFamily: "Inter_500Medium", marginBottom: 7 },
   picker: {
     flexDirection: "row", alignItems: "center",
     borderWidth: 1.5, borderRadius: 12,
@@ -334,10 +334,10 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 12, color: "#EF4444", fontFamily: "Inter_400Regular", marginTop: 6 },
   primaryBtn: {
     flexDirection: "row", alignItems: "center", justifyContent: "center",
-    backgroundColor: YELLOW, borderRadius: 14, paddingVertical: 16, marginTop: 28, gap: 8,
+    backgroundColor: YELLOW, borderRadius: 14, paddingVertical: 15, marginTop: 20, gap: 8,
   },
   primaryBtnText: { fontSize: 16, fontWeight: "700", color: "#1C1C1E", fontFamily: "Inter_700Bold" },
-  footer: { alignItems: "center", marginTop: 24, gap: 12 },
+  footer: { alignItems: "center", marginTop: 18, gap: 10 },
   footerDivider: { width: 40, height: 1 },
   linkText: { fontSize: 14, fontFamily: "Inter_600SemiBold", textDecorationLine: "underline" },
   registerText: { fontSize: 14, fontFamily: "Inter_400Regular" },

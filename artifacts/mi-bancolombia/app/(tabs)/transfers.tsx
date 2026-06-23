@@ -618,7 +618,7 @@ let setCurrentViewGlobal: ((v: SubView) => void) | null = null;
 ══════════════════════════════════════════════════════════════ */
 export default function TransfersScreen() {
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 60 : insets.top;
+  const topPad = insets.top > 0 ? insets.top : 20;
   const { accounts } = useApp();
   const [currentView, setCurrentView] = useState<SubView>("menu");
   setCurrentViewGlobal = setCurrentView;

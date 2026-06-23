@@ -4,7 +4,6 @@ import {
   Alert,
   Linking,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -475,7 +474,7 @@ function ExplorarView({ isDark, C, onNavigateRecargar, onNavigateFacturas }: {
 ══════════════════════════════════════════════════════════════ */
 export default function ExplorarScreen() {
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 60 : insets.top;
+  const topPad = insets.top > 0 ? insets.top : 20;
   const { C, isDark } = useTheme();
   const [subNav, setSubNav] = useState<"main" | "recargar" | "facturas">("main");
 

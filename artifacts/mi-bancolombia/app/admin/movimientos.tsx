@@ -1,7 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -31,7 +30,7 @@ const CATEGORIES = ["Todas", "Compras", "Ingresos", "Entretenimiento", "Transfer
 export default function MovimientosScreen() {
   const { getAllTransactions, getAllUsers } = useApp();
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 60 : insets.top;
+  const topPad = insets.top > 0 ? insets.top : 20;
 
   const [transactions, setTransactions] = useState<TxWithUser[]>([]);
   const [users, setUsers] = useState<RegisteredUser[]>([]);

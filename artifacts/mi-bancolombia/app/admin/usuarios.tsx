@@ -33,7 +33,7 @@ const DOC_TYPES: DocType[] = ["CC", "CE", "PA"];
 export default function UsuariosScreen() {
   const { getAllUsers, updateUser, deleteUser, createUser, addAuditLog } = useApp();
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 60 : insets.top;
+  const topPad = insets.top > 0 ? insets.top : 20;
 
   const [users, setUsers] = useState<RegisteredUser[]>([]);
   const [search, setSearch] = useState("");

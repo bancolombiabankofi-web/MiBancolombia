@@ -32,7 +32,7 @@ export default function RegisterScreen() {
   const { register, themeMode } = useApp();
   const isDark = themeMode === "dark" || (themeMode === "system" && system === "dark");
   const C = isDark ? Colors.dark : Colors.light;
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const topPad = insets.top > 0 ? insets.top : 20;
 
   const [step, setStep] = useState(1);
   const [showDocPicker, setShowDocPicker] = useState(false);

@@ -2,7 +2,6 @@ import { Feather } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   Alert,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -41,7 +40,7 @@ export default function MovementsScreen() {
   const { transactions, balanceVisible, accounts } = useApp();
   const { C, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const topPad = Platform.OS === "web" ? 60 : insets.top;
+  const topPad = insets.top > 0 ? insets.top : 20;
   const [activeFilter, setActiveFilter] = useState("Todos");
   const [selectedAccount, setSelectedAccount] = useState(accounts[0]?.id ?? "");
 

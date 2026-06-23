@@ -32,7 +32,7 @@ export default function ForgotPasswordScreen() {
   const { themeMode } = useApp();
   const isDark = themeMode === "dark" || (themeMode === "system" && system === "dark");
   const C = isDark ? Colors.dark : Colors.light;
-  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const topPad = insets.top > 0 ? insets.top : 20;
 
   const [step, setStep] = useState<"form" | "sent">("form");
   const [docType, setDocType] = useState<DocumentType>("CC");

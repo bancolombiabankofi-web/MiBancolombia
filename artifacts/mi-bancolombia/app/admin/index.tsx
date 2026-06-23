@@ -2,7 +2,6 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -28,7 +27,7 @@ export default function AdminDashboard() {
   const { logout, getAllUsers, getAllTransactions, getAllAccounts, getLoginEvents, currentUser } = useApp();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const topPad = Platform.OS === "web" ? 60 : insets.top;
+  const topPad = insets.top > 0 ? insets.top : 20;
 
   const [users, setUsers] = useState<RegisteredUser[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);

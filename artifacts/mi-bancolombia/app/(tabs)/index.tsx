@@ -384,7 +384,7 @@ export default function HomeScreen() {
   const { C, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const topPad = insets.top || (Platform.OS === "web" ? 16 : 0);
+  const topPad = insets.top > 0 ? insets.top : 20;
 
   /* Modal states */
   const [showLogout, setShowLogout]     = useState(false);
