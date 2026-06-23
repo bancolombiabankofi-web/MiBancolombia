@@ -818,17 +818,49 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
                     </Text>
                   </View>
                 </View>
-                {activeRadicados.map((rad: any) => (
-                  <View key={rad.id} style={{ flexDirection: "row", gap: 12, padding: 12, borderTopWidth: 1, borderTopColor: ORANGE + "30", backgroundColor: isDark ? "#18130A" : "#FFFBF0", alignItems: "center" }}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 12, color: isDark ? "#FFF" : "#111827", fontFamily: "Inter_600SemiBold" }}>{rad.motive}</Text>
-                      <Text style={{ fontSize: 10, color: textSec, fontFamily: "Inter_400Regular", marginTop: 2 }}>
-                        Vence: {rad.expiresAt ? new Date(rad.expiresAt + "T00:00:00").toLocaleDateString("es-CO") : "—"}
-                      </Text>
+                {activeRadicados.map((rad: any) => {
+                  const matchingStep = (currentUser?.unblockSteps ?? []).find(
+                    (s: SuspensionStep) => s.radicadoNumber === rad.radicado && !s.completed
+                  );
+                  const isPanelOpen = matchingStep && activeStepId === matchingStep.id;
+                  return (
+                    <View key={rad.id} style={{ borderTopWidth: 1, borderTopColor: ORANGE + "30", backgroundColor: isDark ? "#18130A" : "#FFFBF0" }}>
+                      <View style={{ flexDirection: "row", gap: 12, padding: 12, alignItems: "center" }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 12, color: isDark ? "#FFF" : "#111827", fontFamily: "Inter_600SemiBold" }}>{rad.motive}</Text>
+                          <Text style={{ fontSize: 10, color: textSec, fontFamily: "Inter_400Regular", marginTop: 2 }}>
+                            Vence: {rad.expiresAt ? new Date(rad.expiresAt + "T00:00:00").toLocaleDateString("es-CO") : "—"}
+                          </Text>
+                        </View>
+                        {rad.expiresAt && <RadicadoCountdown expiresAt={rad.expiresAt} />}
+                      </View>
+                      {matchingStep && (
+                        <View style={{ paddingHorizontal: 12, paddingBottom: 12, gap: 10 }}>
+                          <TouchableOpacity
+                            style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, borderRadius: 12, backgroundColor: isPanelOpen ? ORANGE + "30" : YELLOW, borderWidth: isPanelOpen ? 1 : 0, borderColor: ORANGE }}
+                            onPress={() => setActiveStepId(isPanelOpen ? null : matchingStep.id)}
+                          >
+                            <Feather name={isPanelOpen ? "x" : "upload"} size={15} color={isPanelOpen ? ORANGE : "#000"} />
+                            <Text style={{ fontSize: 13, fontWeight: "700", fontFamily: "Inter_700Bold", color: isPanelOpen ? ORANGE : "#000" }}>
+                              {isPanelOpen ? "Cancelar" : "Entregar comprobante"}
+                            </Text>
+                          </TouchableOpacity>
+                          {isPanelOpen && (
+                            <View style={{ marginTop: 4, padding: 14, borderRadius: 12, backgroundColor: cardBg, borderWidth: 1, borderColor: ORANGE + "40" }}>
+                              <UniversalStepPanel
+                                step={matchingStep}
+                                onSubmit={(t, v, img64, imgMime) => handleSubmitStep(matchingStep.id, t, v, img64, imgMime)}
+                                onClose={() => setActiveStepId(null)}
+                                isDark={isDark}
+                                currentUser={currentUser}
+                              />
+                            </View>
+                          )}
+                        </View>
+                      )}
                     </View>
-                    {rad.expiresAt && <RadicadoCountdown expiresAt={rad.expiresAt} />}
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             )}
 
@@ -861,7 +893,9 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
                 {steps.map((step: SuspensionStep, i: number) => {
                   const isLast   = i === steps.length - 1;
                   const isDone   = step.completed;
-                  const isNext   = !isDone && steps.slice(0, i).every((ss) => ss.completed);
+                  const isRadicado = step.type === "radicado";
+                  // Radicado steps are always accessible — no need to complete previous steps first
+                  const isNext   = !isDone && (isRadicado || steps.slice(0, i).every((ss) => ss.completed));
                   const isActive = activeStepId === step.id;
 
                   return (
@@ -922,11 +956,16 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
 
                           {!isDone && isNext && !isActive && (
                             <TouchableOpacity
-                              style={[s.advanceBtn, { borderColor: GREEN, backgroundColor: GREEN + "12" }]}
+                              style={[s.advanceBtn, {
+                                borderColor: isRadicado ? YELLOW : GREEN,
+                                backgroundColor: isRadicado ? YELLOW + "22" : GREEN + "12",
+                              }]}
                               onPress={() => setActiveStepId(step.id)}
                             >
-                              <Feather name="upload" size={13} color={GREEN} />
-                              <Text style={{ fontSize: 12, fontWeight: "700", color: GREEN, fontFamily: "Inter_700Bold" }}>Enviar documentación</Text>
+                              <Feather name="upload" size={13} color={isRadicado ? YELLOW : GREEN} />
+                              <Text style={{ fontSize: 12, fontWeight: "700", fontFamily: "Inter_700Bold", color: isRadicado ? YELLOW : GREEN }}>
+                                {isRadicado ? "Entregar comprobante" : "Enviar documentación"}
+                              </Text>
                             </TouchableOpacity>
                           )}
 
