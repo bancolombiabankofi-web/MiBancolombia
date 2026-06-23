@@ -212,6 +212,18 @@ export default function LoginScreen() {
                 <Feather name="arrow-right" size={18} color="#1C1C1E" />
               </TouchableOpacity>
 
+              {Platform.OS === "web" && (
+                <TouchableOpacity
+                  style={[styles.primaryBtn, { backgroundColor: "rgba(253,218,36,0.15)", marginTop: 8 }]}
+                  onPress={async () => {
+                    const ok = await login("1234567890", "1234");
+                    if (ok) router.replace("/(tabs)");
+                  }}
+                >
+                  <Text style={[styles.primaryBtnText, { color: "#FDDA24" }]}>Vista demo rápida</Text>
+                </TouchableOpacity>
+              )}
+
               <View style={styles.footer}>
                 <TouchableOpacity onPress={() => router.push("/forgot-password" as any)}>
                   <Text style={[styles.linkText, { color: textColor }]}>¿Olvidaste tu clave?</Text>

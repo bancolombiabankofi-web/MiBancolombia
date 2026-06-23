@@ -8,24 +8,36 @@ const YELLOW = "#FDDA24";
 
 type FeatherName = keyof typeof Feather.glyphMap;
 
-function TabIcon({ name, focused, C }: { name: FeatherName; focused: boolean; C: any }) {
+function TabIcon({ name, label, focused, C }: { name: FeatherName; label: string; focused: boolean; C: any }) {
   return (
-    <View style={styles.iconWrap}>
+    <View style={styles.tabItemWrap}>
       <Feather
         name={name}
-        size={22}
-        color={focused ? C.tabIconSelected : C.tabIconDefault}
+        size={21}
+        color={focused ? YELLOW : C.tabIconDefault}
       />
-      {focused && <View style={styles.dot} />}
+      <Text
+        style={[
+          styles.tabLabel,
+          { color: focused ? YELLOW : C.tabIconDefault },
+        ]}
+        numberOfLines={2}
+      >
+        {label}
+      </Text>
     </View>
   );
 }
 
-function QRTabIcon({ focused, C }: { focused: boolean; C: any }) {
+function ExplorarTabIcon({ focused }: { focused: boolean }) {
   return (
-    <View style={styles.qrWrap}>
-      <View style={[styles.qrBtn, focused && styles.qrBtnActive]}>
-        <Feather name="maximize" size={22} color={focused ? "#1C1C1E" : "#FFFFFF"} />
+    <View style={styles.explorarWrap}>
+      <View style={[styles.explorarBtn, focused && styles.explorarBtnActive]}>
+        <Feather
+          name="grid"
+          size={24}
+          color={focused ? "#1C1C1E" : "#FFFFFF"}
+        />
       </View>
     </View>
   );
@@ -39,66 +51,59 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: isDark ? YELLOW : "#1C1C1E",
-        tabBarInactiveTintColor: C.tabIconDefault,
+        tabBarShowLabel: false,
         tabBarStyle: {
           backgroundColor: C.tabBar,
-          borderTopWidth: 1,
+          borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: C.border,
           elevation: 16,
           shadowColor: "#000",
           shadowOpacity: isDark ? 0.5 : 0.08,
           shadowRadius: 16,
           shadowOffset: { width: 0, height: -2 },
-          height: isWeb ? 76 : 80,
-          paddingBottom: isWeb ? 10 : 14,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontFamily: "Inter_500Medium",
-          marginTop: 2,
+          height: isWeb ? 72 : 80,
+          paddingBottom: isWeb ? 8 : 14,
+          paddingTop: 0,
         },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Inicio",
-          tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} C={C} />,
-          tabBarActiveTintColor: isDark ? YELLOW : "#1C1C1E",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="home" label="Inicio" focused={focused} C={C} />
+          ),
         }}
       />
       <Tabs.Screen
         name="movements"
         options={{
-          title: "Movimientos",
-          tabBarIcon: ({ focused }) => <TabIcon name="clock" focused={focused} C={C} />,
-          tabBarActiveTintColor: isDark ? YELLOW : "#1C1C1E",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="list" label="Transacciones" focused={focused} C={C} />
+          ),
         }}
       />
       <Tabs.Screen
         name="transfers"
         options={{
-          title: "Transferir",
           tabBarLabel: () => null,
-          tabBarIcon: ({ focused }) => <QRTabIcon focused={focused} C={C} />,
+          tabBarIcon: ({ focused }) => <ExplorarTabIcon focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="payments"
         options={{
-          title: "Explorar",
-          tabBarIcon: ({ focused }) => <TabIcon name="grid" focused={focused} C={C} />,
-          tabBarActiveTintColor: isDark ? YELLOW : "#1C1C1E",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="file-text" label={"Trámites y\nsolicitudes"} focused={focused} C={C} />
+          ),
         }}
       />
       <Tabs.Screen
         name="cards"
         options={{
-          title: "Más",
-          tabBarIcon: ({ focused }) => <TabIcon name="menu" focused={focused} C={C} />,
-          tabBarActiveTintColor: isDark ? YELLOW : "#1C1C1E",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="settings" label="Ajustes" focused={focused} C={C} />
+          ),
         }}
       />
     </Tabs>
@@ -106,30 +111,39 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  iconWrap: {
+  tabItemWrap: {
     alignItems: "center",
     justifyContent: "center",
     gap: 3,
+    paddingTop: 10,
+    minWidth: 56,
   },
-  dot: {
-    width: 4, height: 4, borderRadius: 2,
-    backgroundColor: YELLOW,
+  tabLabel: {
+    fontSize: 9,
+    fontFamily: "Inter_500Medium",
+    textAlign: "center",
+    lineHeight: 11,
+    marginTop: 2,
   },
-  qrWrap: {
+  explorarWrap: {
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -18,
+    marginTop: -20,
   },
-  qrBtn: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: "#1C1C1E",
-    alignItems: "center", justifyContent: "center",
+  explorarBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#2A2A30",
+    alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#000",
-    shadowOpacity: 0.3, shadowRadius: 10,
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
-    elevation: 8,
+    elevation: 10,
   },
-  qrBtnActive: {
+  explorarBtnActive: {
     backgroundColor: YELLOW,
   },
 });
