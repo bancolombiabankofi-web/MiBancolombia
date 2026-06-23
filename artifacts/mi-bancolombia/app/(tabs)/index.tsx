@@ -5,6 +5,7 @@ import {
   Alert,
   Dimensions,
   Image,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -19,31 +20,35 @@ import { useTheme } from "@/hooks/useTheme";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const YELLOW = "#FDDA24";
-const COL_W = SCREEN_W / 4; // 4-column grid matching reference
+const COL_W = SCREEN_W / 4;
 
-/* ── Transacciones principales (4 visible, matching reference) ── */
+/* ── Transacciones principales ── */
 const TX_ACTIONS = [
   { icon: "bar-chart-2", label: "Ver saldos y\nmovimientos", color: "#3B82F6", tab: 1 },
   { icon: "send",        label: "Transferir\nplata",         color: "#8B5CF6", tab: 2 },
-  { icon: "credit-card", label: "Pagar tarjetas\ny créditos", color: "#6366F1", alert: "Selecciona la tarjeta a pagar." },
-  { icon: "file-text",  label: "Pagar\nfacturas",            color: "#EF4444", tab: 3 },
+  { icon: "credit-card", label: "Pagar tarjetas\ny créditos", color: "#6366F1", tab: 2 },
+  { icon: "file-text",   label: "Pagar\nfacturas",           color: "#EF4444", tab: 2 },
   { icon: "repeat",      label: "A otro banco\nTransfiya",   color: "#10B981", tab: 2 },
   { icon: "download",    label: "Recibir\nplata",            color: "#06B6D4", tab: 2 },
-  { icon: "smartphone",  label: "Recargar\ncelular",         color: "#F59E0B", tab: 3 },
-  { icon: "trending-up", label: "Avances y\ndesembolsos",    color: "#10B981", alert: "Ve a Más > Mis créditos." },
+  { icon: "smartphone",  label: "Recargar\ncelular",         color: "#F59E0B", tab: 2 },
+  { icon: "trending-up", label: "Avances y\ndesembolsos",    color: "#10B981", tab: 2 },
 ];
 
-/* ── Explorar nuestras categorías ── */
+/* ── Explorar categorías ── */
 const CATEGORIES = [
-  { icon: "target",       label: "Metas",      color: "#AF52DE", bg: "#AF52DE22" },
-  { icon: "home",         label: "Vivienda",   color: "#FF6B35", bg: "#FF6B3522" },
-  { icon: "shield",       label: "Seguros",    color: "#34C759", bg: "#34C75922" },
-  { icon: "trending-up",  label: "Inversiones",color: "#007AFF", bg: "#007AFF22" },
-  { icon: "dollar-sign",  label: "Créditos",   color: "#FDDA24", bg: "#FDDA2422" },
-  { icon: "more-horizontal", label: "Más",     color: "#8B5CF6", bg: "#8B5CF622" },
+  { icon: "target",       label: "Metas",      color: "#AF52DE", bg: "#AF52DE22", tab: 3 },
+  { icon: "home",         label: "Vivienda",   color: "#FF6B35", bg: "#FF6B3522",
+    info: "Tu360 Inmobiliario\n\nEncontramos la vivienda perfecta para ti. Préstamos hipotecarios, leasing y subsidios de vivienda disponibles." },
+  { icon: "shield",       label: "Seguros",    color: "#34C759", bg: "#34C75922",
+    info: "Seguros Bancolombia\n\nProtege lo que más importa. Seguros de vida, hogar, vehículo y salud con las mejores condiciones." },
+  { icon: "trending-up",  label: "Inversiones",color: "#007AFF", bg: "#007AFF22",
+    info: "Invierte con Bancolombia\n\nFDAs, CDTs y Fondos de inversión. Haz crecer tu dinero con nuestras opciones de inversión." },
+  { icon: "dollar-sign",  label: "Créditos",   color: "#FDDA24", bg: "#FDDA2422",
+    info: "Créditos de consumo\n\nLibranza, crédito personal, rotativo y microcrédito. Solicita el tuyo en minutos." },
+  { icon: "more-horizontal", label: "Más",     color: "#8B5CF6", bg: "#8B5CF622", tab: 3 },
 ];
 
-/* ── Clave Dinámica pill with countdown ── */
+/* ── Clave Dinámica pill ── */
 function ClaveTimer() {
   const [seconds, setSeconds] = useState(28);
   const [codeVal] = useState(() => {
@@ -60,7 +65,8 @@ function ClaveTimer() {
       onPress={() =>
         Alert.alert(
           "Clave Dinámica",
-          `Tu clave de un solo uso:\n\n${codeVal}\n\nCambia cada 30 segundos.`,
+          `Tu clave de un solo uso:\n\n${codeVal}\n\nCambia automáticamente cada 30 segundos.\nÚsala cuando te la soliciten para confirmar operaciones.`,
+          [{ text: "Entendido" }],
         )
       }
       activeOpacity={0.82}
@@ -79,47 +85,28 @@ function ClaveTimer() {
   );
 }
 
-/* ── Rainbow arc — concentric rings, center upper-left off-screen ── */
-// Colors outermost → innermost matching the reference image
+/* ── Rainbow arc ── */
 const ARC_BANDS = ["#FF3B30","#FF6B35","#FDDA24","#34C759","#00C7BE","#007AFF","#AF52DE"];
 
 function ColorArc() {
-  const ARC_H   = 172;
-  const BAND_W  = 18;
-  const GAP     = 5;
-  const STEP    = BAND_W + GAP;
-  // Center off-screen upper-left → right ) portion visible on right side
-  const CX      = SCREEN_W * -0.12;
-  const CY      = -SCREEN_W * 0.05;
-  const BASE_R  = SCREEN_W * 1.08;
+  const ARC_H = 172;
+  const BAND_W = 18;
+  const GAP = 5;
+  const STEP = BAND_W + GAP;
+  const CX = SCREEN_W * -0.12;
+  const CY = -SCREEN_W * 0.05;
+  const BASE_R = SCREEN_W * 1.08;
 
   return (
-    <View
-      style={{
-        position: "absolute",
-        top: 0, left: 0, right: 0,
-        height: ARC_H,
-        overflow: "hidden",
-      }}
-      pointerEvents="none"
-    >
+    <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: ARC_H, overflow: "hidden" }} pointerEvents="none">
       {ARC_BANDS.map((color, i) => {
         const r = BASE_R - i * STEP;
         return (
-          <View
-            key={i}
-            style={{
-              position: "absolute",
-              left: CX - r,
-              top:  CY - r,
-              width:  r * 2,
-              height: r * 2,
-              borderRadius: r,
-              borderWidth: BAND_W,
-              borderColor: color,
-              backgroundColor: "transparent",
-            }}
-          />
+          <View key={i} style={{
+            position: "absolute", left: CX - r, top: CY - r,
+            width: r * 2, height: r * 2, borderRadius: r,
+            borderWidth: BAND_W, borderColor: color, backgroundColor: "transparent",
+          }} />
         );
       })}
     </View>
@@ -134,24 +121,67 @@ export default function HomeScreen() {
   const router = useRouter();
   const topPad = Platform.OS === "web" ? 60 : insets.top;
 
+  const routes = [
+    "/(tabs)/index",
+    "/(tabs)/movements",
+    "/(tabs)/transfers",
+    "/(tabs)/payments",
+    "/(tabs)/cards",
+  ];
+
   const handleTxAction = (action: (typeof TX_ACTIONS)[0]) => {
-    if (action.alert) {
-      Alert.alert("Información", action.alert);
-    } else if (action.tab !== undefined) {
-      const routes = [
-        "/(tabs)/index",
-        "/(tabs)/movements",
-        "/(tabs)/transfers",
-        "/(tabs)/payments",
-        "/(tabs)/cards",
-      ];
+    if (action.tab !== undefined) {
       router.push(routes[action.tab] as any);
     }
   };
 
+  const handleCategory = (cat: (typeof CATEGORIES)[0]) => {
+    if (cat.tab !== undefined) {
+      router.push(routes[cat.tab] as any);
+    } else if (cat.info) {
+      Alert.alert(cat.label, cat.info, [
+        { text: "Saber más", onPress: () => Linking.openURL("https://www.grupobancolombia.com").catch(() => {}) },
+        { text: "Cerrar", style: "cancel" },
+      ]);
+    }
+  };
+
+  const handleNotifications = () => {
+    Alert.alert(
+      "Notificaciones",
+      "No tienes notificaciones nuevas.\n\nActiva las alertas en Ajustes > Notificaciones para recibir avisos de tus transacciones.",
+      [
+        { text: "Ir a ajustes", onPress: () => router.push("/(tabs)/cards" as any) },
+        { text: "Cerrar", style: "cancel" },
+      ],
+    );
+  };
+
+  const handleHelp = () => {
+    Alert.alert(
+      "Centro de ayuda",
+      "¿Cómo podemos ayudarte?",
+      [
+        { text: "Llamar ahora", onPress: () => Linking.openURL("tel:018000912345").catch(() => {}) },
+        { text: "WhatsApp", onPress: () => Linking.openURL("https://wa.me/573132095988").catch(() => {}) },
+        { text: "Cerrar", style: "cancel" },
+      ],
+    );
+  };
+
+  const handleChat = () => {
+    Alert.alert(
+      "Chat con Bancolombia",
+      "Conéctate con un asesor de Bancolombia para resolver tus dudas.",
+      [
+        { text: "Abrir WhatsApp", onPress: () => Linking.openURL("https://wa.me/573132095988?text=Hola,%20necesito%20ayuda").catch(() => {}) },
+        { text: "Cancelar", style: "cancel" },
+      ],
+    );
+  };
+
   return (
     <View style={[styles.container, { paddingTop: topPad, backgroundColor: C.background }]}>
-
       {/* ── HEADER ── */}
       <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
         <View style={styles.headerLogoRow}>
@@ -166,38 +196,41 @@ export default function HomeScreen() {
           </Text>
         </View>
         <View style={styles.headerIcons}>
-          <TouchableOpacity style={styles.headerIcon}
-            onPress={() => Alert.alert("Notificaciones", "No tienes notificaciones nuevas.")}>
+          <TouchableOpacity style={styles.headerIcon} onPress={handleNotifications}>
             <Feather name="bell" size={19} color={C.text} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}
-            onPress={() => Alert.alert("Ayuda", "Línea: 01 8000 912 345\nWhatsApp: 3132095988")}>
+          <TouchableOpacity style={styles.headerIcon} onPress={handleHelp}>
             <Feather name="help-circle" size={19} color={C.text} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}
-            onPress={() => Alert.alert("Chat", "Conéctate al 3132095988 por WhatsApp.")}>
+          <TouchableOpacity style={styles.headerIcon} onPress={handleChat}>
             <Feather name="message-circle" size={19} color={C.text} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon} onPress={logout}>
+          <TouchableOpacity
+            style={styles.headerIcon}
+            onPress={() =>
+              Alert.alert("Cerrar sesión", "¿Estás seguro de que deseas salir?", [
+                { text: "Cancelar", style: "cancel" },
+                { text: "Salir", style: "destructive", onPress: logout },
+              ])
+            }
+          >
             <Feather name="log-out" size={19} color={C.text} />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        bounces
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* ── HERO: greeting + rainbow arc + clave ── */}
+      <ScrollView showsVerticalScrollIndicator={false} bounces contentContainerStyle={styles.scrollContent}>
+        {/* ── HERO ── */}
         <View style={[styles.heroSection, { backgroundColor: C.heroSection }]}>
           <ColorArc />
-          <View style={styles.greetingRow}>
-            <Text style={[styles.greetingText, { color: C.text }]}>
-              Hola, {userName}
-            </Text>
+          <TouchableOpacity
+            style={styles.greetingRow}
+            activeOpacity={0.75}
+            onPress={() => router.push("/(tabs)/cards" as any)}
+          >
+            <Text style={[styles.greetingText, { color: C.text }]}>Hola, {userName}</Text>
             <Feather name="chevron-right" size={22} color={isDark ? "rgba(255,255,255,0.5)" : "#9CA3AF"} />
-          </View>
+          </TouchableOpacity>
           <ClaveTimer />
         </View>
 
@@ -232,7 +265,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 key={i}
                 style={styles.txItem}
-                onPress={() => Alert.alert(cat.label, `Explora productos de ${cat.label}.`)}
+                onPress={() => handleCategory(cat)}
                 activeOpacity={0.7}
               >
                 <View style={[styles.txIconWrap, { backgroundColor: isDark ? cat.color + "28" : cat.bg }]}>
@@ -250,117 +283,41 @@ export default function HomeScreen() {
   );
 }
 
-/* ── Styles ── */
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
-  /* Header */
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerLogoRow: { flexDirection: "row", alignItems: "center", gap: 7 },
   headerLogoIcon: { width: 24, height: 24 },
-  headerLogoText: {
-    fontSize: 17, fontWeight: "700",
-    fontFamily: "Inter_700Bold", letterSpacing: -0.3,
-  },
+  headerLogoText: { fontSize: 17, fontWeight: "700", fontFamily: "Inter_700Bold", letterSpacing: -0.3 },
   headerIcons: { flexDirection: "row", gap: 0 },
-  headerIcon: {
-    width: 36, height: 36, borderRadius: 18,
-    alignItems: "center", justifyContent: "center",
-  },
-
-  /* Scroll */
+  headerIcon: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   scrollContent: { paddingBottom: 24 },
-
-  /* Hero */
-  heroSection: {
-    minHeight: 172,
-    overflow: "hidden",
-    paddingBottom: 22,
-  },
+  heroSection: { minHeight: 172, overflow: "hidden", paddingBottom: 22 },
   greetingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    gap: 4,
-    zIndex: 2,
+    flexDirection: "row", alignItems: "center",
+    paddingHorizontal: 20, paddingTop: 16, gap: 4, zIndex: 2,
   },
-  greetingText: {
-    fontSize: 26, fontWeight: "700",
-    fontFamily: "Inter_700Bold", letterSpacing: -0.5,
-  },
+  greetingText: { fontSize: 26, fontWeight: "700", fontFamily: "Inter_700Bold", letterSpacing: -0.5 },
   clavePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: YELLOW,
-    borderRadius: 30,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    marginHorizontal: 20,
-    marginTop: 14,
-    gap: 8,
-    alignSelf: "flex-start",
-    zIndex: 2,
+    flexDirection: "row", alignItems: "center", backgroundColor: YELLOW,
+    borderRadius: 30, paddingVertical: 8, paddingHorizontal: 14,
+    marginHorizontal: 20, marginTop: 14, gap: 8, alignSelf: "flex-start", zIndex: 2,
   },
   claveIconWrap: {
     width: 24, height: 24, borderRadius: 12,
-    backgroundColor: "rgba(0,0,0,0.13)",
-    alignItems: "center", justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.13)", alignItems: "center", justifyContent: "center",
   },
-  claveLabel: {
-    fontSize: 9, color: "#1C1C1E",
-    fontFamily: "Inter_500Medium", opacity: 0.65,
-  },
-  claveCode: {
-    fontSize: 15, fontWeight: "700", color: "#1C1C1E",
-    fontFamily: "Inter_700Bold", letterSpacing: 1.5,
-  },
-  claveTimer: {
-    backgroundColor: "rgba(0,0,0,0.13)",
-    borderRadius: 10, paddingHorizontal: 8,
-    paddingVertical: 3, marginLeft: "auto",
-  },
-  claveTimerText: {
-    fontSize: 11, fontWeight: "600", color: "#1C1C1E",
-    fontFamily: "Inter_600SemiBold",
-  },
-
-  /* Sections */
-  section: {
-    paddingTop: 20,
-    paddingBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 15, fontWeight: "700",
-    fontFamily: "Inter_700Bold",
-    paddingHorizontal: 16, marginBottom: 16,
-  },
-
-  /* 4-column grid */
-  txGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
-  txItem: {
-    width: COL_W,
-    alignItems: "center",
-    gap: 7,
-    paddingBottom: 16,
-    paddingHorizontal: 4,
-  },
-  txIconWrap: {
-    width: 52, height: 52, borderRadius: 16,
-    alignItems: "center", justifyContent: "center",
-  },
-  txLabel: {
-    fontSize: 10, fontFamily: "Inter_400Regular",
-    textAlign: "center", lineHeight: 13,
-  },
+  claveLabel: { fontSize: 9, color: "#1C1C1E", fontFamily: "Inter_500Medium", opacity: 0.65 },
+  claveCode: { fontSize: 15, fontWeight: "700", color: "#1C1C1E", fontFamily: "Inter_700Bold", letterSpacing: 1.5 },
+  claveTimer: { backgroundColor: "rgba(0,0,0,0.13)", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, marginLeft: "auto" },
+  claveTimerText: { fontSize: 11, fontWeight: "600", color: "#1C1C1E", fontFamily: "Inter_600SemiBold" },
+  section: { paddingTop: 20, paddingBottom: 8 },
+  sectionTitle: { fontSize: 15, fontWeight: "700", fontFamily: "Inter_700Bold", paddingHorizontal: 16, marginBottom: 16 },
+  txGrid: { flexDirection: "row", flexWrap: "wrap" },
+  txItem: { width: COL_W, alignItems: "center", gap: 7, paddingBottom: 16, paddingHorizontal: 4 },
+  txIconWrap: { width: 52, height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  txLabel: { fontSize: 10, fontFamily: "Inter_400Regular", textAlign: "center", lineHeight: 13 },
 });
