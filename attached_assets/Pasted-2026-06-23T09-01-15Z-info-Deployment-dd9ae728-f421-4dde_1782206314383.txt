@@ -1,0 +1,124 @@
+2026-06-23T09:01:15Z info: Deployment: dd9ae728-f421-4dde-b94c-555a4ee51db6
+2026-06-23T09:01:15Z info: Build: 60546009-944b-459c-8557-951006ba0bbb
+2026-06-23T09:01:15Z info: Running Security Scan
+2026-06-23T09:01:18Z info: Installing packages
+--> pnpm install
+
+Scope: all 9 workspace projects
+
+Lockfile is up to date, resolution step is skipped
+
+
+   ╭─────────────────────────────────────────╮
+   │                                         │
+   │   Update available! 10.26.1 → 11.8.0.   │
+   │   Changelog: https://pnpm.io/v/11.8.0   │
+   │    To update, run: pnpm add -g pnpm     │
+   │                                         │
+   ╰─────────────────────────────────────────╯
+
+
+Already up to date
+
+. preinstall$ sh -c 'rm -f package-lock.json yarn.lock; case "$npm_config_user_agent" in pnpm/*) ;; *) echo "Use pnpm instead" >&2; exit 1 ;; esac'
+
+. preinstall: Done
+
+Done in 4s using pnpm v10.26.1
+
+2026-06-23T09:01:23Z info: Starting Build
+
+> @workspace/api-server@0.0.0 build /home/runner/workspace/artifacts/api-server
+> node ./build.mjs
+
+
+
+  dist/index.mjs                       1.4mb ⚠️
+  dist/pino-worker.mjs               153.4kb
+  dist/pino-file.mjs                 142.1kb
+  dist/pino-pretty.mjs               114.6kb
+  dist/thread-stream-worker.mjs        7.3kb
+  dist/index.mjs.map                   2.1mb
+  dist/pino-worker.mjs.map           256.9kb
+  dist/pino-file.mjs.map             229.0kb
+  dist/pino-pretty.mjs.map           203.9kb
+  dist/thread-stream-worker.mjs.map   12.0kb
+
+⚡ Done in 254ms
+
+
+> @workspace/mi-bancolombia@0.0.0 build /home/runner/workspace/artifacts/mi-bancolombia
+> node scripts/build.js
+
+
+Building static Expo Go deployment...
+
+Preparing build directories...
+
+Build: 1782205285235-169
+
+Clearing Metro cache...
+Cache cleared
+
+Starting Metro...
+Setting EXPO_PUBLIC_DOMAIN=bancolombia--bancolombiaviri.replit.app
+
+Setting EXPO_PUBLIC_REPL_ID=60546009-944b-459c-8557-951006ba0bbb
+
+[Metro] Starting project at /home/runner/workspace/artifacts/mi-bancolombia
+
+[Metro] React Compiler enabled
+
+[Metro] Starting Metro Bundler
+
+Metro ready
+
+Downloading bundles and manifests...
+This may take several minutes for production builds...
+Fetching ios bundle...
+Downloading: http://localhost:8081/artifacts/mi-bancolombia/node_modules/expo-router/entry.bundle?platform=ios&dev=false&hot=false&lazy=false&minify=true
+
+[Metro Error] The following packages should be updated for best compatibility with the installed expo version:
+
+[Metro Error] expo@54.0.33 - expected version: ~54.0.35
+[Metro Error] expo-font@14.0.11 - expected version: ~14.0.12
+[Metro Error] expo-glass-effect@0.1.9 - expected version: ~0.1.10
+[Metro Error] expo-image-picker@17.0.10 - expected version: ~17.0.11
+[Metro Error] expo-linking@8.0.11 - expected version: ~8.0.12
+
+[Metro Error] expo-router@6.0.23 - expected version: ~6.0.24
+  expo-web-browser@15.0.10 - expected version: ~15.0.11
+  react-native-keyboard-controller@1.21.2 - expected version: 1.18.5
+Your project may not work correctly until you install the expected versions of the packages.
+
+[Metro] Waiting on http://localhost:8081
+
+[Metro] Logs for your project will appear below.
+
+[Metro] iOS node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/entry.js ░░░░░░░░░░░░░░░░  0.0% (0/1)
+
+[Metro] iOS node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/entry.js ▓▓▓░░░░░░░░░░░░░ 21.8% ( 92/274)
+
+[Metro] iOS node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/entry.js ▓▓▓▓░░░░░░░░░░░░ 25.3% (247/491)
+
+[Metro] iOS node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/entry.js ▓▓▓▓▓▓░░░░░░░░░░ 38.3% (394/659)
+
+[Metro] iOS node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓░░░░░░░ 58.0% (624/819)
+
+[Metro] iOS node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓░░░░░ 72.4% (845/993)
+
+[Metro] iOS node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 82.5% (1018/1159)
+
+[Metro] iOS node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 97.4% (1246/1349)
+
+[Metro] iOS node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 97.4% (1409/1489)
+
+[Metro] iOS Bundled 31689ms node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/entry.js (1616 modules)
+iOS node_modules/.pnpm/expo-router@6.0.23_@types+react-dom@19.1.11_@types+react@19.1.17__@types+react@19.1.17__abd38177f532ddff11e5834956475527/node_modules/expo-router/entry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░ 99.9% (1616/1616)
+
+ios bundle ready
+
+Fetching android bundle...
+Downloading: http://localhost:8081/artifacts/mi-bancolombia/node_modules/expo-router/entry.bundle?platform=android&dev=false&hot=false&lazy=false&minify=true
+
+2026-06-23T09:02:21Z warn: Security scan skipped: connection lost
