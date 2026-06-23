@@ -40,49 +40,61 @@ export default function LoginScreen() {
   useEffect(() => {
     if (Platform.OS !== "web") return;
 
-    // Detect if already running as installed PWA — hide button permanently.
+    // Already running as installed PWA — hide button permanently.
     const isStandalone =
       (window as any).matchMedia?.("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true;
 
     if (isStandalone) return;
 
-    // The beforeinstallprompt event is captured in +html.tsx <script> before
-    // React boots and stored at window.__pwaInstallPrompt. Read it here.
-    if ((window as any).__pwaInstallPrompt) {
-      setShowInstallBtn(true);
-    }
+    // Show the button as long as the user is in the browser (not standalone).
+    // The button is always visible so users can install at any time.
+    setShowInstallBtn(true);
 
-    // In case the event fires after React mounts (rare but possible).
-    const onPromptReady = () => setShowInstallBtn(true);
-    // Hide button once the OS confirms install is done.
+    // Hide once the OS confirms the install completed.
     const onInstalled = () => setShowInstallBtn(false);
-    // Hide if the display-mode changes to standalone mid-session.
+    // Hide if display-mode flips to standalone mid-session (rare).
     const mq = (window as any).matchMedia?.("(display-mode: standalone)");
     const onMqChange = (ev: any) => { if (ev.matches) setShowInstallBtn(false); };
 
-    window.addEventListener("pwa-prompt-ready", onPromptReady);
     window.addEventListener("pwa-installed", onInstalled);
     mq?.addEventListener?.("change", onMqChange);
 
     return () => {
-      window.removeEventListener("pwa-prompt-ready", onPromptReady);
       window.removeEventListener("pwa-installed", onInstalled);
       mq?.removeEventListener?.("change", onMqChange);
     };
   }, []);
 
   const handleInstall = async () => {
-    const prompt = (window as any).__pwaInstallPrompt;
-    if (!prompt) return;
-    try {
-      prompt.prompt();
-      const { outcome } = await prompt.userChoice;
-      if (outcome === "accepted") {
-        setShowInstallBtn(false);
-        (window as any).__pwaInstallPrompt = null;
-      }
-    } catch { /* ignore */ }
+    // Android Chrome / Edge: use the deferred native install prompt (automatic).
+    const deferred = (window as any).__pwaInstallPrompt;
+    if (deferred) {
+      try {
+        deferred.prompt();
+        const { outcome } = await deferred.userChoice;
+        if (outcome === "accepted") {
+          setShowInstallBtn(false);
+          (window as any).__pwaInstallPrompt = null;
+        }
+      } catch { /* ignore */ }
+      return;
+    }
+
+    // iOS Safari: auto-install is not possible via API.
+    // Show a brief native alert with the exact steps — shortest path available.
+    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIos) {
+      (window as any).alert(
+        "Para instalar Mi Bancolombia en iOS:\n\n1. Toca el botón Compartir (↑) en Safari\n2. Selecciona «Añadir a pantalla de inicio»\n3. Confirma tocando «Añadir»"
+      );
+      return;
+    }
+
+    // Other browsers (Firefox, etc.): guide to menu.
+    (window as any).alert(
+      "Para instalar Mi Bancolombia:\n\nAbre el menú de tu navegador (⋮ o ≡) y busca la opción «Instalar aplicación» o «Añadir a pantalla de inicio»."
+    );
   };
 
   const { login } = useApp();
