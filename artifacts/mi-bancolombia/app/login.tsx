@@ -251,7 +251,7 @@ export default function LoginScreen() {
               )}
 
               <Text style={[styles.label, { marginTop: 12, color: subColor }]}>
-                Número de {DOC_TYPE_LABELS[docType]}
+                Número de documento
               </Text>
               <TextInput
                 style={[styles.input, { borderColor, backgroundColor: inputBg, color: textColor }]}

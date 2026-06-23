@@ -16,13 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
 import Colors from "@/constants/colors";
 import type { DocType } from "@/constants/countries";
-
-const DOC_TYPES: { label: string; value: DocType }[] = [
-  { label: "Cédula de Ciudadanía (CC)", value: "CC" },
-  { label: "Cédula de Extranjería (CE)", value: "CE" },
-  { label: "Pasaporte (PA)", value: "PA" },
-  { label: "Documento Nacional (DNI)", value: "DNI" },
-];
+import { ALL_DOC_TYPES, DOC_TYPE_LABELS } from "@/constants/countries";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -53,7 +47,7 @@ export default function ForgotPasswordScreen() {
     if (validate()) setStep("sent");
   };
 
-  const docLabel = DOC_TYPES.find((d) => d.value === docType)?.label ?? docType;
+  const docLabel = DOC_TYPE_LABELS[docType] ?? docType;
   const inputStyle = [styles.input, { backgroundColor: C.inputBg, borderColor: C.inputBorder, color: C.text }];
 
   return (
@@ -99,16 +93,16 @@ export default function ForgotPasswordScreen() {
 
             {showPicker && (
               <View style={[styles.dropdown, { backgroundColor: C.surface, borderColor: C.border }]}>
-                {DOC_TYPES.map((d) => (
+                {ALL_DOC_TYPES.map((dt) => (
                   <TouchableOpacity
-                    key={d.value}
+                    key={dt}
                     style={[styles.dropdownItem, { borderBottomColor: C.divider }]}
-                    onPress={() => { setDocType(d.value); setShowPicker(false); }}
+                    onPress={() => { setDocType(dt); setShowPicker(false); }}
                   >
-                    <Text style={{ color: d.value === docType ? C.yellow : C.text, fontFamily: "Inter_400Regular", fontSize: 14 }}>
-                      {d.label}
+                    <Text style={{ color: dt === docType ? C.yellow : C.text, fontFamily: "Inter_400Regular", fontSize: 14 }}>
+                      {DOC_TYPE_LABELS[dt]}
                     </Text>
-                    {d.value === docType && <Feather name="check" size={16} color={C.yellow} />}
+                    {dt === docType && <Feather name="check" size={16} color={C.yellow} />}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -119,10 +113,11 @@ export default function ForgotPasswordScreen() {
               style={inputStyle}
               value={docNumber}
               onChangeText={setDocNumber}
-              keyboardType="numeric"
+              keyboardType="default"
               placeholder="Ej. 1234567890"
               placeholderTextColor={C.textLight}
-              maxLength={15}
+              maxLength={20}
+              autoCapitalize="characters"
             />
             {errors.docNumber && <Text style={styles.errorText}>{errors.docNumber}</Text>}
 

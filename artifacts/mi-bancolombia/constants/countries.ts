@@ -17,22 +17,22 @@ export type DocType =
   | "RUT"; // RUT (Chile)
 
 export const DOC_TYPE_LABELS: Record<DocType, string> = {
-  CC:   "Cédula de Ciudadanía (Colombia)",
-  CE:   "Cédula de Extranjería (Colombia)",
-  TI:   "Tarjeta de Identidad (Colombia)",
+  CC:   "Cédula de Ciudadanía",
+  CE:   "Cédula de Extranjería",
+  TI:   "Tarjeta de Identidad",
   PA:   "Pasaporte / Passport",
-  DNI:  "DNI (España / Argentina / Perú)",
-  NIE:  "NIE — Extranjero en España",
-  NIF:  "NIF — Identificación Fiscal (España)",
-  DL:   "Driver License (EE.UU. / Canadá)",
-  SSN:  "Social Security Number (EE.UU.)",
-  GC:   "Green Card / Permanent Resident (EE.UU.)",
-  CURP: "CURP (México)",
-  INE:  "INE / IFE (México)",
-  CPF:  "CPF (Brasil)",
-  RG:   "RG — Registro Geral (Brasil)",
-  CI:   "Cédula de Identidad (LATAM)",
-  RUT:  "RUT (Chile)",
+  DNI:  "DNI — Documento Nacional de Identificación",
+  NIE:  "NIE — Número de Identidad de Extranjero",
+  NIF:  "NIF — Número de Identificación Fiscal",
+  DL:   "Driver License / Licencia de Conducir",
+  SSN:  "SSN — Social Security Number",
+  GC:   "Green Card / Residencia Permanente",
+  CURP: "CURP — Clave Única de Registro de Población",
+  INE:  "INE / IFE — Credencial Electoral",
+  CPF:  "CPF — Cadastro de Pessoas Físicas",
+  RG:   "RG — Registro Geral",
+  CI:   "CI — Cédula de Identidad",
+  RUT:  "RUT — Rol Único Tributario",
 };
 
 export const ALL_DOC_TYPES: DocType[] = [

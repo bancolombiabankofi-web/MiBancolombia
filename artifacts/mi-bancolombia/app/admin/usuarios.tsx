@@ -779,7 +779,7 @@ Quedamos atentos ante cualquier novedad.`;
                   >
                     <Text style={[styles.docTypeChipCode, { color: newUser.documentType === dt ? YELLOW : TEXTSEC }]}>{dt}</Text>
                     <Text style={[styles.docTypeChipLabel, { color: newUser.documentType === dt ? YELLOW + "BB" : TEXTSEC + "88" }]} numberOfLines={1}>
-                      {DOC_TYPE_LABELS[dt].split(" (")[0].split(" —")[0]}
+                      {DOC_TYPE_LABELS[dt].includes(" — ") ? DOC_TYPE_LABELS[dt].split(" — ").slice(1).join(" — ") : DOC_TYPE_LABELS[dt]}
                     </Text>
                   </TouchableOpacity>
                 ))}
