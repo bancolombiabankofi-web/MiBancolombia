@@ -134,12 +134,17 @@ export default function HomeScreen() {
     <View style={[styles.container, { paddingTop: topPad, backgroundColor: C.background }]}>
       {/* ── HEADER ── */}
       <View style={[styles.header, { backgroundColor: C.headerBg, borderBottomColor: C.border }]}>
-        <Image
-          source={require("../../assets/images/bancolombia_icon.png")}
-          style={styles.headerLogo}
-          resizeMode="contain"
-          tintColor={isDark ? "#FFFFFF" : undefined}
-        />
+        <View style={styles.headerLogoRow}>
+          <Image
+            source={require("../../assets/images/bancolombia_icon.png")}
+            style={styles.headerLogoIcon}
+            resizeMode="contain"
+            tintColor={isDark ? "#FFFFFF" : "#1C1C1E"}
+          />
+          <Text style={[styles.headerLogoText, { color: isDark ? "#FFFFFF" : "#1C1C1E" }]}>
+            Bancolombia
+          </Text>
+        </View>
         <View style={styles.headerIcons}>
           <TouchableOpacity
             style={styles.headerIcon}
@@ -232,7 +237,14 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderBottomWidth: 1,
   },
-  headerLogo: { width: 120, height: 30 },
+  headerLogoRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  headerLogoIcon: { width: 26, height: 26 },
+  headerLogoText: {
+    fontSize: 17,
+    fontWeight: "700",
+    fontFamily: "Inter_700Bold",
+    letterSpacing: -0.3,
+  },
   headerIcons: { flexDirection: "row", gap: 2 },
   headerIcon: {
     width: 34, height: 34, borderRadius: 17,
