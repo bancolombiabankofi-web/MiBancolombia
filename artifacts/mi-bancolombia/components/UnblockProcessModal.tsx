@@ -17,7 +17,6 @@ import {
 } from "react-native";
 import type { SuspensionStep, SubmissionType } from "@/context/AppContext";
 import { useApp } from "@/context/AppContext";
-import { BarcodeDisplay } from "@/components/BarcodeDisplay";
 
 const GREEN  = "#22C55E";
 const RED    = "#EF4444";
@@ -108,7 +107,7 @@ function StepTypeLabel({ type }: { type?: string }) {
   if (type === "tax_certificate")       return "Comprobante tributario";
   if (type === "document")              return "Presentar documento";
   if (type === "identity_verification") return "Verificación de identidad";
-  if (type === "radicado")              return "Verificación de radicado de documento";
+  if (type === "radicado")              return "Solicitud pendiente";
   return "Paso requerido";
 }
 
@@ -141,7 +140,7 @@ function UniversalStepPanel({
   /* manual form fields */
   const [docNumber, setDocNumber] = useState("");
   const [fullName,  setFullName]  = useState("");
-  const [radicado,  setRadicado]  = useState(step.radicadoNumber ?? "");
+  const [radicado,  setRadicado]  = useState("");
 
   const text    = isDark ? "#FFFFFF" : "#111827";
   const textSec = isDark ? "rgba(255,255,255,0.55)" : "#6B7280";
@@ -246,8 +245,7 @@ function UniversalStepPanel({
         setRadicado(detected);
         if (isRadicadoStep) await verifyRadicadoWithAPI(detected);
       } else {
-        setScanResult("Imagen cargada. Verifica el número de radicado o ingrésalo manualmente.");
-        if (step.radicadoNumber) setRadicado(step.radicadoNumber);
+        setScanResult("Imagen cargada. No se detectó código — ingrésalo manualmente.");
       }
       setActiveTab("manual");
     } else {
@@ -340,7 +338,6 @@ function UniversalStepPanel({
           setScanResult(
             "Imagen capturada. No se detectó código automáticamente — ingresa el número manualmente."
           );
-          if (step.radicadoNumber && !isIdentity) setRadicado(step.radicadoNumber);
           setActiveTab("manual");
         }
       } else {
@@ -383,7 +380,7 @@ function UniversalStepPanel({
     if (!clean) { setError("Ingresa el número de radicado."); return false; }
     if (clean.length < 4) { setError("El número de radicado es demasiado corto."); return false; }
     if (step.radicadoNumber && normalize(clean) !== normalize(step.radicadoNumber)) {
-      setError(`El número de radicado no coincide. El código asignado es: ${step.radicadoNumber}`);
+      setError("El número de radicado no coincide con el asignado para este trámite.");
       return false;
     }
     return true;
@@ -559,16 +556,6 @@ function UniversalStepPanel({
       {/* ── Pestaña: Escanear QR / código de barras ── */}
       {activeTab === "qr" && (
         <View style={{ gap: 10 }}>
-          {/* Show the assigned barcode for reference */}
-          {step.radicadoNumber && !isIdentity && (
-            <View style={{ backgroundColor: isDark ? "#1C1C1E" : "#F9FAFB", borderRadius: 12, padding: 12, borderWidth: 1, borderColor: isDark ? "#2C2C2E" : "#E5E7EB" }}>
-              <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_500Medium", marginBottom: 6, textAlign: "center" }}>
-                CÓDIGO ASIGNADO — Escanear este código
-              </Text>
-              <BarcodeDisplay value={step.radicadoNumber} showValue height={60} background={isDark ? "#1C1C1E" : "#FFFFFF"} lineColor={isDark ? "#FFFFFF" : "#1C1C1E"} />
-            </View>
-          )}
-
           <TouchableOpacity
             style={[s.actionBtn, { backgroundColor: isDark ? "#1A2D2A" : "#F0FDF4", borderColor: GREEN }]}
             onPress={handleScan}
@@ -623,16 +610,14 @@ function UniversalStepPanel({
           ) : (
             <>
               <Text style={[s.fieldLabel, { color: textSec }]}>
-                Número de radicado{step.radicadoNumber ? " (asignado por Bancolombia)" : ""}
+                Número de radicado del comprobante
               </Text>
-              {step.radicadoNumber && (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: 8, backgroundColor: PURPLE + "15" }}>
-                  <Feather name="info" size={12} color={PURPLE} />
-                  <Text style={{ fontSize: 11, color: PURPLE, fontFamily: "Inter_400Regular", flex: 1 }}>
-                    Radicado asignado: <Text style={{ fontWeight: "700" }}>{step.radicadoNumber}</Text>. Encuéntralo bajo el código de barras del comprobante.
-                  </Text>
-                </View>
-              )}
+              <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6, padding: 10, borderRadius: 8, backgroundColor: BLUE + "12", marginBottom: 2 }}>
+                <Feather name="info" size={12} color={BLUE} />
+                <Text style={{ fontSize: 11, color: BLUE, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 16 }}>
+                  Ingresa el número que aparece en el comprobante entregado por la entidad, debajo del código de barras.
+                </Text>
+              </View>
               <TextInput
                 style={[s.input, { backgroundColor: inputBg, color: text, borderColor: error ? RED : border, letterSpacing: 1, fontSize: 16 }]}
                 value={radicado}
@@ -829,15 +814,17 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
                       Radicado{activeRadicados.length > 1 ? "s" : ""} de documento pendiente{activeRadicados.length > 1 ? "s" : ""}
                     </Text>
                     <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular", marginTop: 2 }}>
-                      Debes presentar el código de barras de tu{activeRadicados.length > 1 ? "s" : ""} documento{activeRadicados.length > 1 ? "s" : ""} radicado{activeRadicados.length > 1 ? "s" : ""}.
+                      Entrega el comprobante de la entidad para completar tu{activeRadicados.length > 1 ? "s" : ""} trámite{activeRadicados.length > 1 ? "s" : ""} pendiente{activeRadicados.length > 1 ? "s" : ""}.
                     </Text>
                   </View>
                 </View>
                 {activeRadicados.map((rad: any) => (
                   <View key={rad.id} style={{ flexDirection: "row", gap: 12, padding: 12, borderTopWidth: 1, borderTopColor: ORANGE + "30", backgroundColor: isDark ? "#18130A" : "#FFFBF0", alignItems: "center" }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 11, color: ORANGE, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>{rad.radicado}</Text>
-                      <Text style={{ fontSize: 10, color: textSec, fontFamily: "Inter_400Regular", marginTop: 2 }}>{rad.motive}</Text>
+                      <Text style={{ fontSize: 12, color: isDark ? "#FFF" : "#111827", fontFamily: "Inter_600SemiBold" }}>{rad.motive}</Text>
+                      <Text style={{ fontSize: 10, color: textSec, fontFamily: "Inter_400Regular", marginTop: 2 }}>
+                        Vence: {rad.expiresAt ? new Date(rad.expiresAt + "T00:00:00").toLocaleDateString("es-CO") : "—"}
+                      </Text>
                     </View>
                     {rad.expiresAt && <RadicadoCountdown expiresAt={rad.expiresAt} />}
                   </View>
@@ -918,19 +905,12 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
                             <Text style={{ fontSize: 12, color: textSec, fontFamily: "Inter_400Regular", marginBottom: 8, lineHeight: 17 }}>{step.description}</Text>
                           ) : null}
 
-                          {/* Show barcode for document/radicado steps */}
-                          {!isDone && step.radicadoNumber && (step.type === "document" || step.type === "tax_certificate" || step.type === "radicado") && (
-                            <View style={{ backgroundColor: isDark ? "#111" : "#F9FAFB", borderRadius: 10, padding: 10, marginBottom: 8, borderWidth: 1, borderColor: isDark ? "#2C2C2E" : "#E5E7EB" }}>
-                              <Text style={{ fontSize: 10, color: textSec, fontFamily: "Inter_500Medium", textAlign: "center", marginBottom: 4 }}>
-                                CÓDIGO DE BARRAS · RADICADO
+                          {step.type === "radicado" && step.expiresAt && !isDone && (
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: ORANGE + "15", borderWidth: 1, borderColor: ORANGE + "40" }}>
+                              <Feather name="clock" size={11} color={ORANGE} />
+                              <Text style={{ fontSize: 11, color: ORANGE, fontFamily: "Inter_600SemiBold" }}>
+                                Vence el {new Date(step.expiresAt + "T00:00:00").toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" })}
                               </Text>
-                              <BarcodeDisplay
-                                value={step.radicadoNumber}
-                                showValue
-                                height={55}
-                                background={isDark ? "#111111" : "#FFFFFF"}
-                                lineColor={isDark ? "#FFFFFF" : "#1C1C1E"}
-                              />
                             </View>
                           )}
 

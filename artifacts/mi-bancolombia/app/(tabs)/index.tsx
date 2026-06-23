@@ -22,7 +22,6 @@ import { useApp } from "@/context/AppContext";
 import { useTheme } from "@/hooks/useTheme";
 import { formatBalance, maskedBalance } from "@/constants/countries";
 import { UnblockProcessModal } from "@/components/UnblockProcessModal";
-import { BarcodeDisplay } from "@/components/BarcodeDisplay";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const YELLOW = "#FDDA24";
@@ -402,65 +401,9 @@ type RadicadoInfo = {
   status: string;
 };
 
-function BarcodeModal({ rad, onClose, isDark }: { rad: RadicadoInfo; onClose: () => void; isDark: boolean }) {
-  const bg   = isDark ? "#111827" : "#FFFFFF";
-  const text = isDark ? "#FFFFFF" : "#111827";
-  const sub  = isDark ? "rgba(255,255,255,0.5)" : "#6B7280";
-  return (
-    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.75)", justifyContent: "flex-end" }}>
-        <View style={{ backgroundColor: bg, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 40 }}>
-          {/* Handle */}
-          <View style={{ width: 36, height: 4, backgroundColor: "rgba(128,128,128,0.3)", borderRadius: 2, alignSelf: "center", marginTop: 12, marginBottom: 16 }} />
-
-          {/* Header */}
-          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, marginBottom: 20 }}>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 17, fontWeight: "700", color: text, fontFamily: "Inter_700Bold" }}>Código de barras</Text>
-              <Text style={{ fontSize: 12, color: sub, fontFamily: "Inter_400Regular", marginTop: 2 }}>Muestra este código al personal de Bancolombia</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: isDark ? "#2C2C2E" : "#F3F4F6", alignItems: "center", justifyContent: "center" }}>
-              <Feather name="x" size={16} color={sub} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Barcode */}
-          <View style={{ marginHorizontal: 20, backgroundColor: "#FFFFFF", borderRadius: 16, padding: 20, alignItems: "center", shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 4 }}>
-            <BarcodeDisplay value={rad.radicado} showValue height={88} width={340} lineColor="#1C1C1E" background="#FFFFFF" />
-          </View>
-
-          {/* Info */}
-          <View style={{ marginHorizontal: 20, marginTop: 16, gap: 8 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDark ? "rgba(255,255,255,0.07)" : "#F0F0F0" }}>
-              <Text style={{ fontSize: 12, color: sub, fontFamily: "Inter_400Regular" }}>Número de radicado</Text>
-              <Text style={{ fontSize: 13, fontWeight: "700", color: ORANGE_RAD, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>{rad.radicado}</Text>
-            </View>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDark ? "rgba(255,255,255,0.07)" : "#F0F0F0" }}>
-              <Text style={{ fontSize: 12, color: sub, fontFamily: "Inter_400Regular" }}>Trámite</Text>
-              <Text style={{ fontSize: 13, color: text, fontFamily: "Inter_500Medium", maxWidth: "60%", textAlign: "right" }}>{rad.motive}</Text>
-            </View>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 10 }}>
-              <Text style={{ fontSize: 12, color: sub, fontFamily: "Inter_400Regular" }}>Vence el</Text>
-              <Text style={{ fontSize: 13, color: text, fontFamily: "Inter_500Medium" }}>{new Date(rad.expiresAt + "T00:00:00").toLocaleDateString("es-CO")}</Text>
-            </View>
-          </View>
-
-          <View style={{ marginHorizontal: 20, marginTop: 8, padding: 12, borderRadius: 12, backgroundColor: ORANGE_RAD + "15", flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
-            <Feather name="info" size={13} color={ORANGE_RAD} style={{ marginTop: 1 }} />
-            <Text style={{ flex: 1, fontSize: 12, color: ORANGE_RAD, fontFamily: "Inter_400Regular", lineHeight: 17 }}>
-              Presenta este código en la sucursal o al funcionario de Bancolombia que atiende tu trámite. El código es válido solo para el titular de la cuenta.
-            </Text>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-function PendingRadicadosBanner({ userId, isDark }: { userId: string; isDark: boolean }) {
+function PendingRadicadosBanner({ userId, isDark, onPresentCode }: { userId: string; isDark: boolean; onPresentCode: () => void }) {
   const [radicados, setRadicados] = React.useState<RadicadoInfo[]>([]);
   const [expanded, setExpanded] = React.useState(false);
-  const [barcodeRad, setBarcodeRad] = React.useState<RadicadoInfo | null>(null);
   const textSec = isDark ? "rgba(255,255,255,0.55)" : "#6B7280";
   const cardBg  = isDark ? "#1A1200" : "#FFFBF0";
 
@@ -481,97 +424,113 @@ function PendingRadicadosBanner({ userId, isDark }: { userId: string; isDark: bo
   if (active.length === 0 && expired.length === 0) return null;
 
   return (
-    <>
-      {barcodeRad && (
-        <BarcodeModal rad={barcodeRad} onClose={() => setBarcodeRad(null)} isDark={isDark} />
-      )}
-      <View style={{ marginHorizontal: 16, marginTop: 12, borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: active.length > 0 ? ORANGE_RAD + "50" : RED_RAD + "40" }}>
-        {/* Header */}
-        <TouchableOpacity
-          style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 14, backgroundColor: active.length > 0 ? ORANGE_RAD + "18" : RED_RAD + "12" }}
-          onPress={() => setExpanded((p) => !p)}
-          activeOpacity={0.8}
-        >
-          <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: (active.length > 0 ? ORANGE_RAD : RED_RAD) + "22", alignItems: "center", justifyContent: "center" }}>
-            <Feather name="tag" size={16} color={active.length > 0 ? ORANGE_RAD : RED_RAD} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: "700", color: active.length > 0 ? ORANGE_RAD : RED_RAD, fontFamily: "Inter_700Bold" }}>
-              {active.length > 0
-                ? `Documento${active.length > 1 ? "s" : ""} pendiente${active.length > 1 ? "s" : ""} de presentación`
-                : `Radicado${expired.length > 1 ? "s" : ""} vencido${expired.length > 1 ? "s" : ""}`}
-            </Text>
-            <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular", marginTop: 1 }}>
-              {active.length > 0
-                ? `Tienes ${active.length} radicado${active.length > 1 ? "s" : ""} asignado${active.length > 1 ? "s" : ""} que debes presentar`
-                : `${expired.length} radicado${expired.length > 1 ? "s" : ""} expirado${expired.length > 1 ? "s" : ""} — contacta a soporte`}
-            </Text>
-          </View>
-          <Feather name={expanded ? "chevron-up" : "chevron-down"} size={16} color={textSec} />
-        </TouchableOpacity>
+    <View style={{ marginHorizontal: 16, marginTop: 12, borderRadius: 14, overflow: "hidden", borderWidth: 1, borderColor: active.length > 0 ? ORANGE_RAD + "50" : RED_RAD + "40" }}>
+      {/* Header */}
+      <TouchableOpacity
+        style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 14, backgroundColor: active.length > 0 ? ORANGE_RAD + "18" : RED_RAD + "12" }}
+        onPress={() => setExpanded((p) => !p)}
+        activeOpacity={0.8}
+      >
+        <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: (active.length > 0 ? ORANGE_RAD : RED_RAD) + "22", alignItems: "center", justifyContent: "center" }}>
+          <Feather name="file-text" size={16} color={active.length > 0 ? ORANGE_RAD : RED_RAD} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: active.length > 0 ? ORANGE_RAD : RED_RAD, fontFamily: "Inter_700Bold" }}>
+            {active.length > 0
+              ? `Documento${active.length > 1 ? "s" : ""} pendiente${active.length > 1 ? "s" : ""} de entrega`
+              : `Documento${expired.length > 1 ? "s" : ""} vencido${expired.length > 1 ? "s" : ""}`}
+          </Text>
+          <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular", marginTop: 1 }}>
+            {active.length > 0
+              ? `${active.length} trámite${active.length > 1 ? "s" : ""} esperando tu comprobante`
+              : `${expired.length} trámite${expired.length > 1 ? "s" : ""} expirado${expired.length > 1 ? "s" : ""} — contacta a soporte`}
+          </Text>
+        </View>
+        <Feather name={expanded ? "chevron-up" : "chevron-down"} size={16} color={textSec} />
+      </TouchableOpacity>
 
-        {/* Expanded rows */}
-        {expanded && (
-          <View style={{ backgroundColor: cardBg }}>
-            {/* Active radicados */}
-            {active.map((rad) => (
-              <View key={rad.id} style={{ padding: 12, borderTopWidth: 1, borderTopColor: ORANGE_RAD + "25", gap: 6 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <Feather name="tag" size={13} color={ORANGE_RAD} />
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: ORANGE_RAD, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>{rad.radicado}</Text>
-                  <View style={{ backgroundColor: ORANGE_RAD + "22", borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 }}>
-                    <Text style={{ fontSize: 9, color: ORANGE_RAD, fontFamily: "Inter_700Bold" }}>PENDIENTE</Text>
-                  </View>
+      {/* Expanded rows */}
+      {expanded && (
+        <View style={{ backgroundColor: cardBg }}>
+          {/* Active — instruct user to get certificate from entity */}
+          {active.map((rad) => (
+            <View key={rad.id} style={{ padding: 14, borderTopWidth: 1, borderTopColor: ORANGE_RAD + "25", gap: 8 }}>
+              {/* Document title — visible, radicado number hidden */}
+              <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                <View style={{ marginTop: 1 }}>
+                  <Feather name="file-text" size={14} color={ORANGE_RAD} />
                 </View>
-                <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular" }}>Trámite: {rad.motive}</Text>
-                <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular" }}>
-                  Vence: {new Date(rad.expiresAt + "T00:00:00").toLocaleDateString("es-CO")}
-                </Text>
-                {/* Inline barcode preview */}
-                <View style={{ backgroundColor: "#FFFFFF", borderRadius: 10, padding: 12, marginTop: 4, alignItems: "center" }}>
-                  <BarcodeDisplay value={rad.radicado} showValue height={64} width={300} lineColor="#1C1C1E" background="#FFFFFF" />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: isDark ? "#FFF" : "#111827", fontFamily: "Inter_700Bold" }}>{rad.motive}</Text>
+                  <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular", marginTop: 2 }}>
+                    Vence el {new Date(rad.expiresAt + "T00:00:00").toLocaleDateString("es-CO")}
+                  </Text>
                 </View>
-                {/* Show full barcode button */}
-                <TouchableOpacity
-                  style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: ORANGE_RAD, borderRadius: 10, paddingVertical: 11, marginTop: 2 }}
-                  onPress={() => setBarcodeRad(rad)}
-                  activeOpacity={0.85}
-                >
-                  <Feather name="maximize-2" size={14} color="#FFFFFF" />
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: "#FFFFFF", fontFamily: "Inter_700Bold" }}>Ver código de barras completo</Text>
-                </TouchableOpacity>
+                <View style={{ backgroundColor: ORANGE_RAD + "22", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 9, color: ORANGE_RAD, fontFamily: "Inter_700Bold" }}>PENDIENTE</Text>
+                </View>
               </View>
-            ))}
 
-            {/* Expired radicados */}
-            {expired.map((rad) => (
-              <View key={rad.id} style={{ padding: 12, borderTopWidth: 1, borderTopColor: RED_RAD + "25", gap: 4 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <Feather name="tag" size={13} color={RED_RAD} />
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: RED_RAD, fontFamily: "Inter_700Bold", letterSpacing: 0.5 }}>{rad.radicado}</Text>
-                  <View style={{ backgroundColor: RED_RAD + "22", borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 }}>
-                    <Text style={{ fontSize: 9, color: RED_RAD, fontFamily: "Inter_700Bold" }}>VENCIDO</Text>
-                  </View>
+              {/* Instructions */}
+              <View style={{ padding: 10, borderRadius: 10, backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", gap: 6 }}>
+                <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                  <Text style={{ fontSize: 12, color: ORANGE_RAD, fontFamily: "Inter_700Bold" }}>1.</Text>
+                  <Text style={{ flex: 1, fontSize: 12, color: textSec, fontFamily: "Inter_400Regular", lineHeight: 17 }}>
+                    Acude a la entidad correspondiente y completa el trámite requerido.
+                  </Text>
                 </View>
-                <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular" }}>Trámite: {rad.motive}</Text>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
-                  <Text style={{ fontSize: 10, color: textSec, fontFamily: "Inter_500Medium" }}>Documento:</Text>
-                  <Text style={{ fontSize: 14, color: RED_RAD, fontFamily: "Inter_700Bold", letterSpacing: 4 }}>
+                <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                  <Text style={{ fontSize: 12, color: ORANGE_RAD, fontFamily: "Inter_700Bold" }}>2.</Text>
+                  <Text style={{ flex: 1, fontSize: 12, color: textSec, fontFamily: "Inter_400Regular", lineHeight: 17 }}>
+                    Recibe el comprobante con código de barras que la entidad te entregará.
+                  </Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                  <Text style={{ fontSize: 12, color: ORANGE_RAD, fontFamily: "Inter_700Bold" }}>3.</Text>
+                  <Text style={{ flex: 1, fontSize: 12, color: textSec, fontFamily: "Inter_400Regular", lineHeight: 17 }}>
+                    Regresa aquí y presiona <Text style={{ fontWeight: "700" }}>Entregar comprobante</Text> para registrarlo.
+                  </Text>
+                </View>
+              </View>
+
+              {/* CTA */}
+              <TouchableOpacity
+                style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: ORANGE_RAD, borderRadius: 10, paddingVertical: 12 }}
+                onPress={onPresentCode}
+                activeOpacity={0.85}
+              >
+                <Feather name="upload" size={14} color="#FFFFFF" />
+                <Text style={{ fontSize: 13, fontWeight: "700", color: "#FFFFFF", fontFamily: "Inter_700Bold" }}>Entregar comprobante</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+
+          {/* Expired */}
+          {expired.map((rad) => (
+            <View key={rad.id} style={{ padding: 14, borderTopWidth: 1, borderTopColor: RED_RAD + "25", gap: 6 }}>
+              <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                <Feather name="file-text" size={14} color={RED_RAD} style={{ marginTop: 1 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: isDark ? "#FFF" : "#111827", fontFamily: "Inter_700Bold" }}>{rad.motive}</Text>
+                  <Text style={{ fontSize: 11, color: textSec, fontFamily: "Inter_400Regular", marginTop: 2 }}>
                     {censorDoc(rad.documentNumber)}
                   </Text>
                 </View>
-                <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6, marginTop: 4, padding: 8, borderRadius: 8, backgroundColor: RED_RAD + "10" }}>
-                  <Feather name="alert-triangle" size={12} color={RED_RAD} style={{ marginTop: 1 }} />
-                  <Text style={{ fontSize: 11, color: RED_RAD, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 15 }}>
-                    Este radicado venció el {new Date(rad.expiresAt + "T00:00:00").toLocaleDateString("es-CO")}. No puede ser utilizado. Contacta a soporte para renovarlo.
-                  </Text>
+                <View style={{ backgroundColor: RED_RAD + "22", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 }}>
+                  <Text style={{ fontSize: 9, color: RED_RAD, fontFamily: "Inter_700Bold" }}>VENCIDO</Text>
                 </View>
               </View>
-            ))}
-          </View>
-        )}
-      </View>
-    </>
+              <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6, padding: 10, borderRadius: 8, backgroundColor: RED_RAD + "10" }}>
+                <Feather name="alert-triangle" size={12} color={RED_RAD} style={{ marginTop: 1 }} />
+                <Text style={{ fontSize: 11, color: RED_RAD, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 16 }}>
+                  Este trámite venció el {new Date(rad.expiresAt + "T00:00:00").toLocaleDateString("es-CO")}. Contacta a soporte para renovarlo.
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -809,7 +768,7 @@ export default function HomeScreen() {
 
       {/* ── PENDING RADICADOS BANNER ── */}
       {currentUser?.id && !currentUser.isAdmin && (
-        <PendingRadicadosBanner userId={currentUser.id} isDark={isDark} />
+        <PendingRadicadosBanner userId={currentUser.id} isDark={isDark} onPresentCode={() => setShowUnblock(true)} />
       )}
 
       {/* ── SCROLL CONTENT ── */}

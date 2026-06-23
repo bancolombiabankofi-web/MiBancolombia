@@ -22,6 +22,7 @@ export type SuspensionStep = {
   description: string;
   type?: StepType;
   radicadoNumber?: string;
+  expiresAt?: string;
   completed?: boolean;
   completedAt?: string;
   submittedValue?: string;

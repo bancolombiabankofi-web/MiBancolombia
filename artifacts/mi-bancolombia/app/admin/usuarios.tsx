@@ -190,6 +190,17 @@ export default function UsuariosScreen() {
             ? data.filter((r: any) => r.status === "active" && new Date(r.expiresAt + "T23:59:59").getTime() >= now)
             : [];
           setTargetRadicados(active);
+          if (active.length > 0) {
+            const autoSteps = active.map((rad: any) => ({
+              id: `rad_${rad.id}_${Date.now()}`,
+              label: rad.motive,
+              description: `Vence el ${new Date(rad.expiresAt + "T00:00:00").toLocaleDateString("es-CO")}. Presenta el comprobante emitido por la entidad.`,
+              type: "radicado" as const,
+              radicadoNumber: rad.radicado,
+              expiresAt: rad.expiresAt,
+            }));
+            setSuspendSteps(autoSteps);
+          }
         })
         .catch(() => {});
     }
@@ -636,46 +647,30 @@ Quedamos atentos ante cualquier novedad.`;
                 </View>
               ))}
 
-              {/* Active radicados suggestion */}
+              {/* Active radicados — auto-included as mandatory steps */}
               {targetRadicados.length > 0 && (
-                <View style={{ marginBottom: 14, padding: 12, borderRadius: 12, backgroundColor: "#F59E0B18", borderWidth: 1, borderColor: "#F59E0B40" }}>
+                <View style={{ marginBottom: 14, padding: 12, borderRadius: 12, backgroundColor: "#10B98118", borderWidth: 1, borderColor: "#10B98140" }}>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                    <Feather name="tag" size={14} color={ORANGE} />
-                    <Text style={{ fontSize: 12, fontWeight: "700", color: ORANGE, fontFamily: "Inter_700Bold" }}>
-                      {targetRadicados.length} radicado{targetRadicados.length > 1 ? "s" : ""} activo{targetRadicados.length > 1 ? "s" : ""} asignado{targetRadicados.length > 1 ? "s" : ""}
+                    <Feather name="check-circle" size={14} color={GREEN} />
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: GREEN, fontFamily: "Inter_700Bold" }}>
+                      {targetRadicados.length} radicado{targetRadicados.length > 1 ? "s" : ""} activo{targetRadicados.length > 1 ? "s" : ""} incluido{targetRadicados.length > 1 ? "s" : ""} automáticamente
                     </Text>
                   </View>
                   <Text style={{ fontSize: 11, color: TEXTSEC, fontFamily: "Inter_400Regular", marginBottom: 10, lineHeight: 16 }}>
-                    Este usuario tiene radicados de documentos vigentes. Añádelos como pasos obligatorios de verificación.
+                    Los radicados activos se han agregado como pasos obligatorios. El usuario verá el título y la fecha de vencimiento, pero no el código.
                   </Text>
                   {targetRadicados.map((rad: any) => (
-                    <View key={rad.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.04)", borderWidth: 1, borderColor: "#F59E0B30", marginBottom: 6 }}>
+                    <View key={rad.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.04)", borderWidth: 1, borderColor: "#10B98130", marginBottom: 6 }}>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 12, fontWeight: "700", color: YELLOW, fontFamily: "Inter_700Bold" }}>{rad.radicado}</Text>
+                        <Text style={{ fontSize: 12, fontWeight: "700", color: YELLOW, fontFamily: "Inter_700Bold" }}>{rad.motive}</Text>
                         <Text style={{ fontSize: 10, color: TEXTSEC, fontFamily: "Inter_400Regular", marginTop: 1 }}>
-                          {rad.motive} · Vence: {new Date(rad.expiresAt + "T00:00:00").toLocaleDateString("es-CO")}
+                          Cód. admin: {rad.radicado} · Vence: {new Date(rad.expiresAt + "T00:00:00").toLocaleDateString("es-CO")}
                         </Text>
                       </View>
-                      {suspendSteps.some((s) => s.radicadoNumber === rad.radicado) ? (
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: GREEN + "22" }}>
-                          <Feather name="check" size={11} color={GREEN} />
-                          <Text style={{ fontSize: 10, color: GREEN, fontFamily: "Inter_600SemiBold" }}>Agregado</Text>
-                        </View>
-                      ) : (
-                        <TouchableOpacity
-                          style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 8, paddingVertical: 6, borderRadius: 8, backgroundColor: "#F59E0B22", borderWidth: 1, borderColor: "#F59E0B60" }}
-                          onPress={() => setSuspendSteps((prev) => [...prev, {
-                            id: `rad_${Date.now()}`,
-                            label: `Verificar radicado de documento`,
-                            description: `Presenta el código de barras del radicado ${rad.radicado}. Trámite: ${rad.motive}. Vence el ${new Date(rad.expiresAt + "T00:00:00").toLocaleDateString("es-CO")}.`,
-                            type: "radicado" as const,
-                            radicadoNumber: rad.radicado,
-                          }])}
-                        >
-                          <Feather name="plus" size={12} color={ORANGE} />
-                          <Text style={{ fontSize: 11, color: ORANGE, fontFamily: "Inter_600SemiBold" }}>Agregar paso</Text>
-                        </TouchableOpacity>
-                      )}
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: GREEN + "22" }}>
+                        <Feather name="check" size={11} color={GREEN} />
+                        <Text style={{ fontSize: 10, color: GREEN, fontFamily: "Inter_600SemiBold" }}>Incluido</Text>
+                      </View>
                     </View>
                   ))}
                 </View>
