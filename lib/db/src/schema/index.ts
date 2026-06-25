@@ -11,3 +11,4 @@ export * from "./radicados";
 export * from "./userContacts";
 export * from "./pushTokens";
 export * from "./notificationsLog";
+export * from "./appNotificationsInbox";

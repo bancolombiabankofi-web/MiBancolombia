@@ -16,6 +16,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { useContactsSync } from "@/hooks/useContactsSync";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { InAppNotificationBanner } from "@/components/InAppNotificationBanner";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -78,6 +79,7 @@ function RootLayoutNav() {
       <PwaInstallTracker />
       <ContactsSyncer />
       <PushNotificationsRegistrar />
+      <InAppNotificationBanner />
       <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
         <Stack.Screen name="login" options={{ headerShown: false, animation: "fade" }} />
         <Stack.Screen name="register" options={{ headerShown: false }} />

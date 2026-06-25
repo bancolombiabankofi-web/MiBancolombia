@@ -13,6 +13,7 @@ import settingsRouter from "./settings";
 import radicadosRouter from "./radicados";
 import userContactsRouter from "./userContacts";
 import notificationsRouter from "./notifications";
+import appNotificationsRouter from "./appNotifications";
 
 const router: IRouter = Router();
 
@@ -30,5 +31,6 @@ router.use(settingsRouter);
 router.use(radicadosRouter);
 router.use(userContactsRouter);
 router.use(notificationsRouter);
+router.use(appNotificationsRouter);
 
 export default router;

@@ -13,7 +13,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "@/context/AppContext";
-import type { AuditLog, LoginEvent, PinChangeRequest, PwaInstallEvent } from "@/context/AppContext";
+import { apiUrl } from "@/utils/api";
+import type { AuditLog, LoginEvent, PinChangeRequest, PwaInstallEvent, RegisteredUser } from "@/context/AppContext";
+
+type PushToken = {
+  id: string; userId: string; token: string;
+  platform: string; deviceInfo: string; createdAt: string; updatedAt: string;
+};
 
 const BG = "#0F1320";
 const CARD = "#161B2E";
@@ -46,10 +52,10 @@ const ACTION_COLORS: Record<string, string> = {
   SUBMIT_UNBLOCK_STEP: PURPLE,
 };
 
-type Tab = "logins" | "audit" | "pin_requests" | "pwa";
+type Tab = "logins" | "audit" | "pin_requests" | "pwa" | "apk";
 
 export default function AuditoriaScreen() {
-  const { getAuditLogs, getLoginEvents, getPinChangeRequests, approvePinChange, rejectPinChange, getPwaInstallEvents } = useApp();
+  const { getAuditLogs, getLoginEvents, getPinChangeRequests, approvePinChange, rejectPinChange, getPwaInstallEvents, getAllUsers } = useApp();
   const insets = useSafeAreaInsets();
   const topPad = insets.top > 0 ? insets.top : 20;
 
@@ -58,6 +64,8 @@ export default function AuditoriaScreen() {
   const [loginEvents, setLoginEvents] = useState<LoginEvent[]>([]);
   const [pinRequests, setPinRequests] = useState<PinChangeRequest[]>([]);
   const [pwaEvents, setPwaEvents] = useState<PwaInstallEvent[]>([]);
+  const [pushTokens, setPushTokens] = useState<PushToken[]>([]);
+  const [allUsers, setAllUsers] = useState<RegisteredUser[]>([]);
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -69,13 +77,21 @@ export default function AuditoriaScreen() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [l, ev, pr, pwa] = await Promise.all([getAuditLogs(), getLoginEvents(), getPinChangeRequests(), getPwaInstallEvents()]);
+    const [l, ev, pr, pwa, users] = await Promise.all([
+      getAuditLogs(), getLoginEvents(), getPinChangeRequests(), getPwaInstallEvents(), getAllUsers(),
+    ]);
     setLogs(l);
     setLoginEvents(ev);
     setPinRequests(pr);
     setPwaEvents(pwa);
+    setAllUsers(users);
+    try {
+      const res = await fetch(apiUrl("/api/push-tokens"));
+      const tokens = await res.json();
+      setPushTokens(Array.isArray(tokens) ? tokens : []);
+    } catch { /* ignore */ }
     setLoading(false);
-  }, [getAuditLogs, getLoginEvents, getPinChangeRequests, getPwaInstallEvents]);
+  }, [getAuditLogs, getLoginEvents, getPinChangeRequests, getPwaInstallEvents, getAllUsers]);
 
   useEffect(() => { load(); }, []);
 
@@ -122,6 +138,22 @@ export default function AuditoriaScreen() {
   const failedLogins = loginEvents.filter((l) => !l.success).length;
   const pendingPins = pinRequests.filter((r) => r.status === "pending").length;
   const pwaCount = pwaEvents.length;
+  const apkCount = pushTokens.length;
+
+  /* Build user lookup map */
+  const userMap = new Map<string, RegisteredUser>();
+  allUsers.forEach((u) => userMap.set(u.id, u));
+
+  const filteredApk = pushTokens.filter((t) => {
+    const q = search.toLowerCase();
+    const u = userMap.get(t.userId);
+    return (
+      t.platform.toLowerCase().includes(q) ||
+      t.deviceInfo.toLowerCase().includes(q) ||
+      t.token.toLowerCase().includes(q) ||
+      (u ? (u.firstName + " " + u.lastName + " " + u.documentNumber).toLowerCase().includes(q) : false)
+    );
+  });
 
   const handleApprove = async (id: string) => {
     Alert.alert("Aprobar cambio de clave", "¿Confirmas la aprobación? La nueva clave entrará en vigor de inmediato.", [
@@ -144,10 +176,11 @@ export default function AuditoriaScreen() {
   };
 
   const TABS: { key: Tab; icon: string; label: string; badge?: number }[] = [
-    { key: "logins",       icon: "log-in",   label: "Sesiones" },
-    { key: "pin_requests", icon: "lock",     label: "Claves", badge: pendingPins },
-    { key: "pwa",          icon: "download", label: "PWA", badge: pwaCount },
-    { key: "audit",        icon: "shield",   label: "Admin" },
+    { key: "logins",       icon: "log-in",     label: "Sesiones" },
+    { key: "pin_requests", icon: "lock",       label: "Claves", badge: pendingPins },
+    { key: "apk",          icon: "smartphone", label: "APK", badge: apkCount },
+    { key: "pwa",          icon: "download",   label: "PWA", badge: pwaCount },
+    { key: "audit",        icon: "shield",     label: "Admin" },
   ];
 
   return (
@@ -175,6 +208,7 @@ export default function AuditoriaScreen() {
         <StatItem label="Ingresos" count={successLogins} color={GREEN} />
         <StatItem label="Fallidos" count={failedLogins} color={RED} />
         <StatItem label="Claves pend." count={pendingPins} color={ORANGE} />
+        <StatItem label="APK inst." count={apkCount} color={GREEN} />
         <StatItem label="PWA inst." count={pwaCount} color={BLUE} />
         <StatItem label="Acciones" count={logs.length} color={PURPLE} />
       </View>
@@ -346,6 +380,68 @@ export default function AuditoriaScreen() {
                       {req.processedAt && <DetailRow label="Procesado el" value={fmt(req.processedAt)} />}
                       {req.processedBy && <DetailRow label="Procesado por" value={req.processedBy} />}
                       {req.rejectionReason && <DetailRow label="Motivo rechazo" value={req.rejectionReason} />}
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })
+          )
+
+        /* ─── APK INSTALACIONES ─── */
+        ) : tab === "apk" ? (
+          filteredApk.length === 0 ? (
+            <View style={{ alignItems: "center", paddingVertical: 40, gap: 12 }}>
+              <Feather name="smartphone" size={32} color={TEXTSEC} />
+              <Text style={styles.empty}>Sin APKs registrados aún</Text>
+              <Text style={{ fontSize: 12, color: TEXTSEC, fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 32 }}>
+                Cuando un usuario instale el APK y haga login, su dispositivo aparecerá aquí con el token de notificaciones push.
+              </Text>
+            </View>
+          ) : (
+            filteredApk.map((token) => {
+              const u = userMap.get(token.userId);
+              const isExpanded = expanded === token.id;
+              return (
+                <TouchableOpacity
+                  key={token.id}
+                  style={styles.card}
+                  onPress={() => setExpanded(isExpanded ? null : token.id)}
+                >
+                  <View style={styles.cardRow}>
+                    <View style={[styles.dot, { backgroundColor: GREEN }]} />
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.cardHeader}>
+                        <View style={[styles.badge, { backgroundColor: GREEN + "22", borderColor: GREEN + "44" }]}>
+                          <Text style={[styles.badgeText, { color: GREEN }]}>APK REGISTRADO</Text>
+                        </View>
+                        <Text style={styles.cardTime}>{fmt(token.updatedAt || token.createdAt)}</Text>
+                      </View>
+                      {u ? (
+                        <Text style={styles.cardTitle}>{u.firstName} {u.lastName}</Text>
+                      ) : (
+                        <Text style={styles.cardTitle}>Usuario ID: {token.userId.slice(0, 16)}...</Text>
+                      )}
+                      <Text style={styles.cardSub}>
+                        {u ? `${u.documentType} ${u.documentNumber} · ` : ""}{token.platform.toUpperCase()}
+                      </Text>
+                      <Text style={styles.cardSub} numberOfLines={1}>{token.deviceInfo}</Text>
+                    </View>
+                    <Feather name={isExpanded ? "chevron-up" : "chevron-down"} size={14} color={TEXTSEC} />
+                  </View>
+                  {isExpanded && (
+                    <View style={styles.expanded}>
+                      <DetailRow label="Token ID" value={token.id} />
+                      <DetailRow label="Usuario ID" value={token.userId} />
+                      {u && <DetailRow label="Nombre" value={`${u.firstName} ${u.lastName}`} />}
+                      {u && <DetailRow label="Documento" value={`${u.documentType} ${u.documentNumber}`} />}
+                      <DetailRow label="Plataforma" value={token.platform} />
+                      <DetailRow label="Dispositivo" value={token.deviceInfo} />
+                      <DetailRow label="Registrado" value={fmt(token.createdAt)} />
+                      <DetailRow label="Actualizado" value={fmt(token.updatedAt)} />
+                      <View style={styles.detailBox}>
+                        <Text style={styles.detailBoxLabel}>Push Token (Expo):</Text>
+                        <Text style={styles.detailBoxText}>{token.token}</Text>
+                      </View>
                     </View>
                   )}
                 </TouchableOpacity>
