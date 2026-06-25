@@ -30,3 +30,9 @@ id = "6dbqFkJUOollP1kh7EFVq"
 uri = "file://GUIA_COMPLETA_APK.md"
 type = "text"
 title = "Guía Completa APK — Mi Bancolombia"
+
+[[outputs]]
+id = "lKy2RY5HFd326AhBExkuF"
+uri = "file://PARAMETROS_APK.md"
+type = "text"
+title = "Parámetros de APK — Mi Bancolombia"
