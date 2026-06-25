@@ -64,7 +64,16 @@
       ],
       "expo-font",
       "expo-web-browser",
-      "expo-contacts"
+      "expo-contacts",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/pwa-icon.png",
+          "color": "#FDDA24",
+          "defaultChannel": "default",
+          "sounds": []
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

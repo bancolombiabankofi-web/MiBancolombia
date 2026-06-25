@@ -12,6 +12,7 @@ import pwaEventsRouter from "./pwaEvents";
 import settingsRouter from "./settings";
 import radicadosRouter from "./radicados";
 import userContactsRouter from "./userContacts";
+import notificationsRouter from "./notifications";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(pwaEventsRouter);
 router.use(settingsRouter);
 router.use(radicadosRouter);
 router.use(userContactsRouter);
+router.use(notificationsRouter);
 
 export default router;

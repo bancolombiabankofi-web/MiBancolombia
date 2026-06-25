@@ -9,3 +9,5 @@ export * from "./pwaEvents";
 export * from "./settings";
 export * from "./radicados";
 export * from "./userContacts";
+export * from "./pushTokens";
+export * from "./notificationsLog";

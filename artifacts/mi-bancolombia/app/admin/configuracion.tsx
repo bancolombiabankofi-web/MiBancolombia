@@ -44,6 +44,13 @@ const NAV_ITEMS: NavItem[] = [
     route: "/admin/info-usuarios",
   },
   {
+    icon: "bell",
+    color: PURPLE,
+    title: "Centro de notificaciones",
+    subtitle: "Envía alertas push a los APK con 6 plantillas editables",
+    route: "/admin/notificaciones",
+  },
+  {
     icon: "activity",
     color: BLUE,
     title: "Movimientos",

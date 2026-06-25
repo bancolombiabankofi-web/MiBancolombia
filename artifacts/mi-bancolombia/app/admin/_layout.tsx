@@ -97,6 +97,10 @@ export default function AdminLayout() {
         name="info-usuarios"
         options={{ href: null, tabBarItemStyle: { display: "none" } }}
       />
+      <Tabs.Screen
+        name="notificaciones"
+        options={{ href: null, tabBarItemStyle: { display: "none" } }}
+      />
     </Tabs>
   );
 }
