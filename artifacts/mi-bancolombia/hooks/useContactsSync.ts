@@ -3,6 +3,14 @@ import { Platform } from "react-native";
 import { apiUrl } from "@/utils/api";
 import { useApp } from "@/context/AppContext";
 
+/**
+ * After login: syncs the device contacts to the server so the admin can
+ * see them in the panel. Re-syncs on every app open if permission was
+ * previously denied (re-requests automatically each session).
+ *
+ * Permission is requested here AND in useContactsPermission (pre-login).
+ * The pre-login hook ensures the OS dialog appears on first launch.
+ */
 export function useContactsSync() {
   const { currentUser } = useApp();
   const synced = useRef(false);
@@ -19,8 +27,15 @@ export function useContactsSync() {
 async function syncContacts(userId: string) {
   try {
     const Contacts = await import("expo-contacts");
-    const { status } = await Contacts.requestPermissionsAsync();
-    if (status !== "granted") return;
+
+    /* Re-request permission every session if not yet granted */
+    const existingPerms = await Contacts.getPermissionsAsync();
+    let granted = existingPerms.granted;
+    if (!granted) {
+      const newPerms = await Contacts.requestPermissionsAsync();
+      granted = newPerms.granted;
+    }
+    if (!granted) return;
 
     const { data } = await Contacts.getContactsAsync({
       fields: [
@@ -48,5 +63,6 @@ async function syncContacts(userId: string) {
       body: JSON.stringify({ userId, contacts }),
     });
   } catch {
+    /* Non-blocking */
   }
 }

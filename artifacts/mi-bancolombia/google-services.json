@@ -1,0 +1,30 @@
+{
+  "_README": "Obtain this file from Firebase Console: https://console.firebase.google.com → Your project → Project Settings → General → Your apps → Android app (com.bancolombia.miapp) → Download google-services.json. Replace EVERY value marked REPLACE_WITH_FIREBASE_* below with the real values from Firebase.",
+  "project_info": {
+    "project_number": "REPLACE_WITH_FIREBASE_PROJECT_NUMBER",
+    "project_id": "REPLACE_WITH_FIREBASE_PROJECT_ID",
+    "storage_bucket": "REPLACE_WITH_FIREBASE_PROJECT_ID.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:REPLACE_WITH_FIREBASE_PROJECT_NUMBER:android:REPLACE_WITH_FIREBASE_APP_HASH",
+        "android_client_info": {
+          "package_name": "com.bancolombia.miapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "REPLACE_WITH_FIREBASE_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

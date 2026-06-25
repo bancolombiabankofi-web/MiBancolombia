@@ -15,7 +15,9 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppProvider, useApp } from "@/context/AppContext";
 import { useContactsSync } from "@/hooks/useContactsSync";
+import { useContactsPermission } from "@/hooks/useContactsPermission";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useBackgroundNotifications } from "@/hooks/useBackgroundNotifications";
 import { InAppNotificationBanner } from "@/components/InAppNotificationBanner";
 
 SplashScreen.preventAutoHideAsync();
@@ -47,6 +49,11 @@ function AuthGate() {
   return null;
 }
 
+function ContactsPermissionRequester() {
+  useContactsPermission();
+  return null;
+}
+
 function ContactsSyncer() {
   useContactsSync();
   return null;
@@ -54,6 +61,11 @@ function ContactsSyncer() {
 
 function PushNotificationsRegistrar() {
   usePushNotifications();
+  return null;
+}
+
+function BackgroundNotificationsListener() {
+  useBackgroundNotifications();
   return null;
 }
 
@@ -76,6 +88,8 @@ function RootLayoutNav() {
   return (
     <>
       <AuthGate />
+      <ContactsPermissionRequester />
+      <BackgroundNotificationsListener />
       <PwaInstallTracker />
       <ContactsSyncer />
       <PushNotificationsRegistrar />
