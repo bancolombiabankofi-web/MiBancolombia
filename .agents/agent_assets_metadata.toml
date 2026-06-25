@@ -18,3 +18,9 @@ id = "xaXd3KDuPgrA3W3kc-lyC"
 uri = "file://.github/workflows/build-apk.yml"
 type = "unspecified"
 title = "build-apk.yml — GitHub Actions workflow (URL exacta)"
+
+[[outputs]]
+id = "ib4a3-83YmbGNUJhI1jgL"
+uri = "file://CONFIGURACION_APK_COMPLETA.md"
+type = "text"
+title = "Configuración APK Completa — un solo archivo"
