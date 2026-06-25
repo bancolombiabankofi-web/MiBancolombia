@@ -24,3 +24,9 @@ id = "ib4a3-83YmbGNUJhI1jgL"
 uri = "file://CONFIGURACION_APK_COMPLETA.md"
 type = "text"
 title = "Configuración APK Completa — un solo archivo"
+
+[[outputs]]
+id = "6dbqFkJUOollP1kh7EFVq"
+uri = "file://GUIA_COMPLETA_APK.md"
+type = "text"
+title = "Guía Completa APK — Mi Bancolombia"
