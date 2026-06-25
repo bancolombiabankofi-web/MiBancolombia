@@ -27,3 +27,9 @@ timeoutMs = 20000
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+EXPO_PUBLIC_PROJECT_ID = "1123da6a-aea4-411f-a792-ea76835c7f00"
+EXPO_PUBLIC_API_URL = "https://bancolombia--bankbancolombia.replit.app"

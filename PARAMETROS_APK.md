@@ -22,14 +22,11 @@ EXPO_PUBLIC_API_URL=https://bancolombia--bankbancolombia.replit.app
 ```
 
 ```
-EXPO_PUBLIC_PROJECT_ID=
+EXPO_PUBLIC_PROJECT_ID=1123da6a-aea4-411f-a792-ea76835c7f00
 ```
 
-> **EXPO_PUBLIC_PROJECT_ID** es el ID único del proyecto en expo.dev.
-> Este valor **no está configurado aún** en el proyecto porque requiere una cuenta en https://expo.dev.
-> Para obtenerlo: entra a expo.dev → crea o abre el proyecto "mi-bancolombia" → copia el UUID que aparece en la URL o en la sección "Project ID".
-> Una vez tengas ese UUID, pégalo después del `=` en la línea de arriba.
-> Sin este valor, el registro del token de push notifications falla silenciosamente (el resto del APK funciona normalmente).
+Cuenta Expo: `mibancolombia`
+Project ID: `1123da6a-aea4-411f-a792-ea76835c7f00`
 
 ---
 

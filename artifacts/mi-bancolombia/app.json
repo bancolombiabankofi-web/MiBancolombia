@@ -2,6 +2,7 @@
   "expo": {
     "name": "Mi Bancolombia",
     "slug": "mi-bancolombia",
+    "owner": "mibancolombia",
     "version": "2.3.2",
     "orientation": "portrait",
     "icon": "./assets/images/pwa-icon.png",
@@ -78,6 +79,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1123da6a-aea4-411f-a792-ea76835c7f00"
+      }
     }
   }
 }
