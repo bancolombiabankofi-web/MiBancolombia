@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { apiUrl } from "@/utils/api";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
@@ -172,7 +173,7 @@ function UniversalStepPanel({
     setError("");
     try {
       const uid  = currentUser?.id ?? "";
-      const url  = `/api/radicados/verify/${encodeURIComponent(value.trim().toUpperCase())}${uid ? `?userId=${encodeURIComponent(uid)}` : ""}`;
+      const url  = apiUrl(`/api/radicados/verify/${encodeURIComponent(value.trim().toUpperCase())}${uid ? `?userId=${encodeURIComponent(uid)}` : ""}`);
       const res  = await fetch(url);
       const data = await res.json();
       setVerifyResult(data);
@@ -705,7 +706,7 @@ export function UnblockProcessModal({ visible, onClose, isDark }: Props) {
 
   React.useEffect(() => {
     if (!visible || !currentUser?.id) return;
-    fetch(`/api/radicados?userId=${encodeURIComponent(currentUser.id)}`)
+    fetch(apiUrl(`/api/radicados?userId=${encodeURIComponent(currentUser.id)}`))
       .then((r) => r.json())
       .then((data) => {
         const now = Date.now();

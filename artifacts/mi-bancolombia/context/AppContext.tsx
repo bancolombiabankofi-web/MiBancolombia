@@ -10,6 +10,7 @@ import React, {
 import { Platform } from "react-native";
 import type { DocType } from "@/constants/countries";
 import { getCountryByCode } from "@/constants/countries";
+import { apiUrl } from "@/utils/api";
 
 export type ThemeMode = "system" | "light" | "dark";
 
@@ -197,11 +198,9 @@ type AppContextType = {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 // --- API helpers ---
-// Use relative URL so both dev (proxied at /) and prod work seamlessly.
-const API = "/api";
-
+// apiUrl() returns a relative path on web (proxied) and an absolute URL on native (APK).
 async function apiFetch(path: string, init?: RequestInit) {
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(apiUrl(`/api${path}`), {
     ...init,
     headers: {
       "Content-Type": "application/json",

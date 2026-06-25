@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { apiUrl } from "@/utils/api";
 import React, { useCallback, useEffect, useState } from "react";
 import { BarcodeDisplay } from "@/components/BarcodeDisplay";
 import {
@@ -183,7 +184,7 @@ export default function UsuariosScreen() {
       setTargetRadicados([]);
       setSuspendModal(true);
       const now = Date.now();
-      fetch(`/api/radicados?userId=${encodeURIComponent(u.id)}`)
+      fetch(apiUrl(`/api/radicados?userId=${encodeURIComponent(u.id)}`))
         .then((r) => r.json())
         .then((data) => {
           const active = Array.isArray(data)

@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { apiUrl } from "@/utils/api";
 import JsBarcode from "jsbarcode";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -247,7 +248,7 @@ export default function RadicadoScreen() {
       /* keep empty, don't block UI */
     }
     try {
-      const res = await fetch("/api/radicados").then((r) => r.json());
+      const res = await fetch(apiUrl("/api/radicados")).then((r) => r.json());
       radList = Array.isArray(res) ? res : [];
     } catch {
       /* keep empty */
@@ -300,7 +301,7 @@ export default function RadicadoScreen() {
         createdBy: currentUser?.id ?? "admin",
         status: "active",
       };
-      const res = await fetch("/api/radicados", {
+      const res = await fetch(apiUrl("/api/radicados"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -336,7 +337,7 @@ export default function RadicadoScreen() {
         });
     if (!confirmed) return;
     try {
-      const res = await fetch(`/api/radicados/${id}`, { method: "DELETE" });
+      const res = await fetch(apiUrl(`/api/radicados/${id}`), { method: "DELETE" });
       if (!res.ok && res.status !== 204) throw new Error("Error al eliminar");
       setRadicados((prev) => prev.filter((r) => r.id !== id));
     } catch {

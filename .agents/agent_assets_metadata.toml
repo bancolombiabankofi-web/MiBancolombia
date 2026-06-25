@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "f5WvaBh30m4sC8XQZ50HO"
+uri = "file://APK_BACKEND_SYNC.md"
+type = "text"
+title = "Guía: Conectar APK al backend en tiempo real"
